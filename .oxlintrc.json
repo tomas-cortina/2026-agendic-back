@@ -1,0 +1,62 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/rules.rs",
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-floating-promises": "warn"
+  },
+  "env": {
+    "node": true
+  },
+  "overrides": [
+    {
+      "files": ["src/domain/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/application",
+                  "**/application/**",
+                  "**/infrastructure",
+                  "**/infrastructure/**",
+                  "@nestjs/*"
+                ],
+                "message": "The domain imports nothing from application, infrastructure or NestJS (ADR 0001)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/application/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@nestjs/common",
+                "allowImportNames": ["Injectable", "Inject"],
+                "message": "Application may import only Injectable and Inject from @nestjs/common (ADR 0001)."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "**/infrastructure",
+                  "**/infrastructure/**",
+                  "@nestjs/*",
+                  "!@nestjs/common"
+                ],
+                "message": "Application imports only the domain and @nestjs/common (ADR 0001)."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

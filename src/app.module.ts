@@ -1,14 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ServicesModule } from './services/services.module'; // <-- IMPORTANTE
-import { ProfessionalsModule } from './professionals/professionals.module'; // <-- IMPORTANTE
-import { ReservationsModule } from './reservations/reservations.module'; // <-- IMPORTANTE
-import { UsersModule } from './users/users.module'; // <-- IMPORTANTE
+import { InfrastructureModule } from './infrastructure/infrastructure.module';
 
 @Module({
-  imports: [ServicesModule, ProfessionalsModule, ReservationsModule, UsersModule], // <-- REGISTRAR AQUÍ
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [InfrastructureModule],
 })
 export class AppModule {}

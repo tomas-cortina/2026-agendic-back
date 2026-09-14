@@ -47,11 +47,8 @@ $ npm run start:prod
 ## Run tests
 
 ```bash
-# unit tests
+# HTTP specs (*.http.spec.ts, supertest against the full app)
 $ npm run test
-
-# e2e tests
-$ npm run test:e2e
 
 # test coverage
 $ npm run test:cov

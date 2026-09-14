@@ -1,23 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { setupApp } from './setup-app';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Habilitar validación automática de DTOs
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-
-  // Habilitar CORS para que el Next.js front pueda hacer peticiones
-  app.enableCors();
-
+  const app = setupApp(await NestFactory.create(AppModule));
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`🚀 Servidor corriendo en: http://localhost:3000/services`);
 }
-bootstrap();
+void bootstrap();
