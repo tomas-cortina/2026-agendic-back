@@ -3,10 +3,11 @@ import { CLOCK } from '../domain/clock';
 import { SESSIONS_REPOSITORY } from '../domain/sessions/sessions.repository';
 import { PASSWORD_HASHER } from '../domain/users/password-hasher';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
-import { InMemorySessionsRepository } from './sessions/in-memory-sessions.repository';
+import { PrismaService } from './prisma.service';
+import { PrismaSessionsRepository } from './sessions/prisma-sessions.repository';
 import { SessionsModule } from './sessions/sessions.module';
 import { SystemClock } from './system-clock';
-import { InMemoryUsersRepository } from './users/in-memory-users.repository';
+import { PrismaUsersRepository } from './users/prisma-users.repository';
 import { ScryptPasswordHasher } from './users/scrypt-password-hasher';
 import { UsersModule } from './users/users.module';
 
@@ -15,10 +16,11 @@ import { UsersModule } from './users/users.module';
 @Module({
   imports: [SessionsModule, UsersModule],
   providers: [
+    PrismaService,
     { provide: CLOCK, useClass: SystemClock },
     { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
-    { provide: USERS_REPOSITORY, useClass: InMemoryUsersRepository },
-    { provide: SESSIONS_REPOSITORY, useClass: InMemorySessionsRepository },
+    { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
+    { provide: SESSIONS_REPOSITORY, useClass: PrismaSessionsRepository },
   ],
   exports: [CLOCK, PASSWORD_HASHER, USERS_REPOSITORY, SESSIONS_REPOSITORY],
 })

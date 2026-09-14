@@ -1,0 +1,117 @@
+// Identifiers follow docs/agents/domain.md (ADR 0003).
+// Hand-written SQL in the init migration, not expressible here (ADR 0004):
+// - no overlapping BOOKED Bookings per Professional (exclusion constraint)
+// - Specialty name unique in any casing; Service name unique in any casing among a Business's Services not retired
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum BookingStatus {
+  BOOKED
+  CANCELLED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  businesses   Business[]
+  professional Professional?
+  bookings     Booking[]
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id // sha256 of the bearer token, never the token itself
+  userId    Int
+  expiresAt DateTime @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Business {
+  id          Int    @id @default(autoincrement())
+  name        String
+  description String
+  ownerId     Int
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  branches Branch[]
+  services Service[]
+}
+
+model Branch {
+  id         Int    @id @default(autoincrement())
+  businessId Int
+  name       String
+  address    String
+  opensAt    DateTime @db.Time(0) // read by Prisma as 1970-01-01T<HH:mm>Z
+  closesAt   DateTime @db.Time(0)
+
+  business      Business       @relation(fields: [businessId], references: [id])
+  professionals Professional[]
+  bookings      Booking[]
+}
+
+model Service {
+  id              Int     @id @default(autoincrement())
+  businessId      Int
+  name            String
+  description     String?
+  durationMinutes Int
+  price           Decimal @db.Decimal(10, 2)
+  retiredAt       DateTime? @db.Timestamptz(3) // when dado de baja; null while offered
+
+  business Business  @relation(fields: [businessId], references: [id])
+  bookings Booking[]
+}
+
+model Specialty {
+  id            Int            @id @default(autoincrement())
+  name          String
+  professionals Professional[]
+}
+
+model Professional {
+  id     Int     @id @default(autoincrement())
+  userId Int     @unique
+  phone  String?
+
+  user        User        @relation(fields: [userId], references: [id])
+  branches    Branch[]
+  specialties Specialty[]
+  bookings    Booking[]
+}
+
+model Booking {
+  id             Int           @id @default(autoincrement())
+  clientId       Int
+  branchId       Int
+  professionalId Int
+  serviceId      Int
+  startsAt       DateTime      @db.Timestamptz(3)
+  endsAt         DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status         BookingStatus @default(BOOKED)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+
+  client       User         @relation(fields: [clientId], references: [id])
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+  service      Service      @relation(fields: [serviceId], references: [id])
+}

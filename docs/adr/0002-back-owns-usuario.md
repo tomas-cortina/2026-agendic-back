@@ -1,0 +1,3 @@
+# The back owns Usuario and authentication
+
+Both repos implemented Usuarios: the front (in-memory, bcrypt-ts, hand-rolled sessions; front ADR 0001) and this API (a users CRUD). This API is the system of record for Usuarios, because it is where persistence will live; the front becomes a client of it. This contradicts front ADR 0001's consequence of writing a real `UsersRepository` in the front: that repository becomes an HTTP adapter to this API instead, in a later ticket. A Usuario is any person with credentials: the same Usuario can be a Dueño, a Profesional and a Cliente. Its only role marks platform Administradores; its password is stored hashed and never leaves the API. Sign-in and sessions come right after Usuario in the build order.
