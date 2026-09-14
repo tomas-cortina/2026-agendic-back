@@ -13,8 +13,11 @@ const trimmed = (normalize: (value: string) => string = (value) => value) =>
     typeof value === 'string' ? normalize(value.trim()) : value,
   );
 
+/** Trimmed, non-empty string. Named for its original use (a person's name); reuse as IsText for other free text. */
 export const IsName = () =>
   applyDecorators(trimmed(), IsString(), IsNotEmpty());
+
+export const IsText = IsName;
 
 export const IsNormalizedEmail = () =>
   applyDecorators(
@@ -35,7 +38,7 @@ export class SignUpDto {
 }
 
 /** Unlike @IsOptional, skips validation only when the field is absent, so null is rejected. */
-const IfPresent = () => ValidateIf((_, value) => value !== undefined);
+export const IfPresent = () => ValidateIf((_, value) => value !== undefined);
 
 export class UpdateMeDto {
   @IfPresent()

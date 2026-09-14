@@ -2,7 +2,20 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
+import {
+  BRANCHES_REPOSITORY,
+  BranchesRepository,
+} from './domain/branches/branches.repository';
+import { Business } from './domain/businesses/business';
+import {
+  BUSINESSES_REPOSITORY,
+  BusinessesRepository,
+} from './domain/businesses/businesses.repository';
 import { CLOCK, Clock } from './domain/clock';
+import {
+  SERVICES_REPOSITORY,
+  ServicesRepository,
+} from './domain/services/services.repository';
 import {
   SESSIONS_REPOSITORY,
   SessionsRepository,
@@ -52,6 +65,25 @@ export async function createTestApp() {
     hash: jest.fn(),
     verify: jest.fn(),
   };
+  const businesses: jest.Mocked<BusinessesRepository> = {
+    create: jest.fn(),
+    findById: jest.fn(),
+    list: jest.fn(),
+    update: jest.fn(),
+  };
+  const branches: jest.Mocked<BranchesRepository> = {
+    create: jest.fn(),
+    findById: jest.fn(),
+    listByBusiness: jest.fn(),
+    update: jest.fn(),
+  };
+  const services: jest.Mocked<ServicesRepository> = {
+    create: jest.fn(),
+    findById: jest.fn(),
+    listActiveByBusiness: jest.fn(),
+    update: jest.fn(),
+    retire: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -61,6 +93,12 @@ export async function createTestApp() {
     .useValue(sessions)
     .overrideProvider(PASSWORD_HASHER)
     .useValue(passwordHasher)
+    .overrideProvider(BUSINESSES_REPOSITORY)
+    .useValue(businesses)
+    .overrideProvider(BRANCHES_REPOSITORY)
+    .useValue(branches)
+    .overrideProvider(SERVICES_REPOSITORY)
+    .useValue(services)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -70,6 +108,9 @@ export async function createTestApp() {
     users,
     sessions,
     passwordHasher,
+    businesses,
+    branches,
+    services,
     http: request(app.getHttpServer()),
   };
 }
@@ -91,15 +132,45 @@ export const VALID_SIGN_UP = {
   password: 'correct-horse-battery',
 };
 
+export const BRUNO: User = {
+  id: 2,
+  name: 'Bruno Díaz',
+  email: 'bruno@example.com',
+  passwordHash: 'stored-hash',
+  role: Role.USER,
+  createdAt: new Date('2025-12-01T00:00:00.000Z'),
+};
+
+export const ANAS_BUSINESS: Business = {
+  id: 1,
+  name: "Ana's Salon",
+  description: 'Hair and nails',
+  ownerId: ANA.id,
+};
+
 export const SESSION_ID = 'session-1';
+export const OTHER_SESSION_ID = 'session-2';
 
 /** Makes `bearer(SESSION_ID)` a Sesión of Ana's, issued at the Clock's now. */
 export function scriptSession({ clock, sessions }: TestApp) {
-  sessions.findById.mockResolvedValue({
-    id: SESSION_ID,
-    userId: ANA.id,
-    expiresAt: new Date(clock.now().getTime() + 30 * DAY_MS),
-  });
+  const expiresAt = new Date(clock.now().getTime() + 30 * DAY_MS);
+  const findById = sessions.findById.getMockImplementation();
+  sessions.findById.mockImplementation(async (id) =>
+    id === SESSION_ID
+      ? { id: SESSION_ID, userId: ANA.id, expiresAt }
+      : (findById?.(id) ?? null),
+  );
+}
+
+/** Makes `bearer(OTHER_SESSION_ID)` a Sesión of Bruno's, alongside Ana's from scriptSession. */
+export function scriptOtherSession({ clock, sessions }: TestApp) {
+  const expiresAt = new Date(clock.now().getTime() + 30 * DAY_MS);
+  const findById = sessions.findById.getMockImplementation();
+  sessions.findById.mockImplementation(async (id) =>
+    id === OTHER_SESSION_ID
+      ? { id: OTHER_SESSION_ID, userId: BRUNO.id, expiresAt }
+      : (findById?.(id) ?? null),
+  );
 }
 
 export const bearer = (sessionId: string) => ({
