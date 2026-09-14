@@ -2,11 +2,11 @@ import {
   ConflictError,
   DatabaseOperationError,
   NotFoundError,
-} from '../../domain/errors';
-import { Role, User } from '../../domain/users/user';
-import { Prisma } from '../../generated/prisma/client';
-import { PrismaService } from '../prisma.service';
-import { PrismaUsersRepository } from './prisma-users.repository';
+} from '../../../domain/errors';
+import { Role, User } from '../../../domain/users/user';
+import { Prisma } from '../../../generated/prisma/client';
+import { PrismaService } from '../../prisma.service';
+import { PrismaUsersRepository } from '../prisma-users.repository';
 
 const ANA: User = {
   id: 1,

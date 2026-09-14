@@ -1,4 +1,4 @@
-import { ScryptPasswordHasher } from './scrypt-password-hasher';
+import { ScryptPasswordHasher } from '../scrypt-password-hasher';
 
 describe('ScryptPasswordHasher', () => {
   const hasher = new ScryptPasswordHasher();

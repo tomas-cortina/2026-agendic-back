@@ -7,7 +7,7 @@ import {
   SESSION_ID,
   TestApp,
   VALID_SIGN_UP,
-} from '../../test-app';
+} from '../../../test-app';
 
 describe('Sesión', () => {
   let t: TestApp;

@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { DatabaseOperationError } from '../../domain/errors';
-import { Prisma } from '../../generated/prisma/client';
-import { PrismaService } from '../prisma.service';
-import { PrismaSessionsRepository } from './prisma-sessions.repository';
+import { DatabaseOperationError } from '../../../domain/errors';
+import { Prisma } from '../../../generated/prisma/client';
+import { PrismaService } from '../../prisma.service';
+import { PrismaSessionsRepository } from '../prisma-sessions.repository';
 
 const sha256 = (value: string) =>
   createHash('sha256').update(value).digest('base64url');
