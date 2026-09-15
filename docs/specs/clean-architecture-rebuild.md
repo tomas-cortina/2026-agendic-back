@@ -4,6 +4,8 @@ labels: ready-for-agent
 
 # Rebuild the API on clean architecture around Negocio, Sucursal, Profesional and Turno
 
+> Build steps 5–8 below (Especialidad, Servicio, Profesional, Turno) are superseded by `docs/specs/business-model-v2.md`. Steps 1–4 (Usuario, Sesión, Negocio, Sucursal) stand as built.
+
 ## Problem Statement
 
 The API is four NestJS CRUD modules (services, professionals, reservations, users) whose service classes mix HTTP exceptions, business rules and in-memory arrays. It does not model the product described in the shared glossary (`../2026-agendic-front/CONTEXT.md`):

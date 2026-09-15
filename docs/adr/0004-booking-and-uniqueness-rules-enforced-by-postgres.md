@@ -2,9 +2,9 @@
 
 Three rules are enforced by constraints written by hand in the `init` migration, not by application code alone:
 
-- no two `BOOKED` Turnos of the same Profesional overlap, using half-open intervals. This is an exclusion constraint over `tstzrange`, via `btree_gist`;
-- Especialidad names are unique in any casing;
-- Servicio names are unique in any casing among a Negocio's Servicios that are not dados de baja (`retiredAt` is null).
+- no two `BOOKED` Turnos of the same Empleado overlap, using half-open intervals. This is an exclusion constraint over `tstzrange`, via `btree_gist`;
+- Servicio names are unique in any casing among a Sucursal's Servicios that are not dados de baja (`retiredAt` is null);
+- an Empleado's email is unique in any casing among a Negocio's Empleados that are not dados de baja (`retiredAt` is null).
 
 An application-only check has a race: two concurrent requests both see a free slot and both write. A database constraint makes the race impossible, and it is cheaper than locking. Prisma can't express these constraints in `schema.prisma`, so they live only in the migration SQL. Prisma's diff ignores them, so it won't try to drop them. The trade-off is that `schema.prisma` is not the whole truth about the database, and the header comment in `schema.prisma` points here.
 

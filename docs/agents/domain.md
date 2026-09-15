@@ -54,14 +54,15 @@ The glossary is in Spanish; code is in English (ADR 0003). Each term has exactly
 | Sucursal | `Branch` (apertura/cierre → `opensAt`/`closesAt`) |
 | Usuario | `User` |
 | Administrador | `Role.ADMIN` |
-| Cliente | `client` (`Booking.clientId`) |
-| Profesional | `Professional` |
-| Especialidad | `Specialty` |
+| Cliente | `Booking.clientName` / `Booking.clientEmail` |
+| Empleado | `Employee` |
 | Servicio | `Service` |
-| Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.BOOKED \| CANCELLED`) |
+| Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| BOOKED \| CANCELLED`) |
+| Turno sin verificar | `BookingStatus.UNVERIFIED` |
 | Reservar | `book` |
 | Cancelar | `cancel` |
-| Dar de baja | `retire` (`Service.retiredAt`) |
+| Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
+| Verificar email | `verifyEmail` / `emailVerifiedAt` |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts
