@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
-import { ListActiveServicesByBusinessUseCase } from '../../application/services/list-active-services-by-business.use-case';
+import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
 import { SessionsModule } from '../sessions/sessions.module';
@@ -13,7 +13,7 @@ import { ServicesController } from './services.controller';
     CreateServiceUseCase,
     UpdateServiceUseCase,
     RetireServiceUseCase,
-    ListActiveServicesByBusinessUseCase,
+    ListActiveServicesByBranchUseCase,
   ],
 })
 export class ServicesModule {}

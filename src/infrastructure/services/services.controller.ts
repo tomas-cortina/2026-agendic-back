@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
-import { ListActiveServicesByBusinessUseCase } from '../../application/services/list-active-services-by-business.use-case';
+import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
 import { Session } from '../../domain/sessions/session';
@@ -24,22 +24,18 @@ export class ServicesController {
     private readonly createServiceUseCase: CreateServiceUseCase,
     private readonly updateServiceUseCase: UpdateServiceUseCase,
     private readonly retireServiceUseCase: RetireServiceUseCase,
-    private readonly listActiveServicesByBusinessUseCase: ListActiveServicesByBusinessUseCase,
+    private readonly listActiveServicesByBranchUseCase: ListActiveServicesByBranchUseCase,
   ) {}
 
-  @Post('businesses/:businessId/services')
+  @Post('branches/:id/services')
   @UseGuards(SessionGuard)
   async create(
     @CurrentSession() session: Session,
-    @Param('businessId', ParseIntPipe) businessId: number,
+    @Param('id', ParseIntPipe) branchId: number,
     @Body() dto: CreateServiceDto,
   ) {
     return presentService(
-      await this.createServiceUseCase.execute(
-        session.userId,
-        businessId,
-        dto,
-      ),
+      await this.createServiceUseCase.execute(session.userId, branchId, dto),
     );
   }
 
@@ -64,10 +60,10 @@ export class ServicesController {
     return this.retireServiceUseCase.execute(session.userId, id);
   }
 
-  @Get('businesses/:businessId/services')
-  async list(@Param('businessId', ParseIntPipe) businessId: number) {
+  @Get('branches/:id/services')
+  async list(@Param('id', ParseIntPipe) branchId: number) {
     return (
-      await this.listActiveServicesByBusinessUseCase.execute(businessId)
+      await this.listActiveServicesByBranchUseCase.execute(branchId)
     ).map(presentService);
   }
 }

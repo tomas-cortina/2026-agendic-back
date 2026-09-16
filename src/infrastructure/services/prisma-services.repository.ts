@@ -16,7 +16,7 @@ export class PrismaServicesRepository implements ServicesRepository {
   async create(
     data: Pick<
       Service,
-      'businessId' | 'name' | 'description' | 'durationMinutes' | 'price'
+      'branchId' | 'name' | 'description' | 'durationMinutes' | 'price'
     >,
   ) {
     return toService(
@@ -31,10 +31,10 @@ export class PrismaServicesRepository implements ServicesRepository {
     return row && toService(row);
   }
 
-  async listActiveByBusiness(businessId: number) {
+  async listActiveByBranch(branchId: number) {
     return (
       await this.prisma.service
-        .findMany({ where: { businessId, retiredAt: null } })
+        .findMany({ where: { branchId, retiredAt: null } })
         .catch(translateError)
     ).map(toService);
   }
@@ -63,7 +63,7 @@ export class PrismaServicesRepository implements ServicesRepository {
 
 const toService = (row: ServiceRow): Service => ({
   id: row.id,
-  businessId: row.businessId,
+  branchId: row.branchId,
   name: row.name,
   description: row.description,
   durationMinutes: row.durationMinutes,

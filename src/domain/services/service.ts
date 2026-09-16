@@ -1,6 +1,6 @@
 export interface Service {
   id: number;
-  businessId: number;
+  branchId: number;
   name: string;
   description: string | null;
   durationMinutes: number;

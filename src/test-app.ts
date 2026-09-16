@@ -80,7 +80,7 @@ export async function createTestApp() {
   const services: jest.Mocked<ServicesRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
-    listActiveByBusiness: jest.fn(),
+    listActiveByBranch: jest.fn(),
     update: jest.fn(),
     retire: jest.fn(),
   };

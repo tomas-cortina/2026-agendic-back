@@ -53,7 +53,7 @@ CREATE TABLE "Branch" (
 -- CreateTable
 CREATE TABLE "Service" (
     "id" SERIAL NOT NULL,
-    "businessId" INTEGER NOT NULL,
+    "branchId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
     "durationMinutes" INTEGER NOT NULL,
@@ -133,7 +133,7 @@ ALTER TABLE "Business" ADD CONSTRAINT "Business_ownerId_fkey" FOREIGN KEY ("owne
 ALTER TABLE "Branch" ADD CONSTRAINT "Branch_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "Business"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Service" ADD CONSTRAINT "Service_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "Business"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Service" ADD CONSTRAINT "Service_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Professional" ADD CONSTRAINT "Professional_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -173,5 +173,5 @@ ALTER TABLE "Booking" ADD CONSTRAINT "Booking_no_overlap"
 
 -- Unique in any casing.
 CREATE UNIQUE INDEX "Specialty_name_ci_key" ON "Specialty"(lower("name"));
--- Only among Services not retired, so a retired Service's name can be reused.
-CREATE UNIQUE INDEX "Service_businessId_name_ci_key" ON "Service"("businessId", lower("name")) WHERE "retiredAt" IS NULL;
+-- Only among Services not retired, so a retired Service's name can be reused. Scoped per Branch, so another Branch (even of the same Business) can reuse a name.
+CREATE UNIQUE INDEX "Service_branchId_name_ci_key" ON "Service"("branchId", lower("name")) WHERE "retiredAt" IS NULL;

@@ -1,7 +1,7 @@
 // Identifiers follow docs/agents/domain.md (ADR 0003).
 // Hand-written SQL in the init migration, not expressible here (ADR 0004):
 // - no overlapping BOOKED Bookings per Professional (exclusion constraint)
-// - Specialty name unique in any casing; Service name unique in any casing among a Business's Services not retired
+// - Specialty name unique in any casing; Service name unique in any casing among a Branch's Services not retired
 
 generator client {
   provider     = "prisma-client"
@@ -53,7 +53,6 @@ model Business {
 
   owner    User      @relation(fields: [ownerId], references: [id])
   branches Branch[]
-  services Service[]
 }
 
 model Branch {
@@ -67,18 +66,19 @@ model Branch {
   business      Business       @relation(fields: [businessId], references: [id])
   professionals Professional[]
   bookings      Booking[]
+  services      Service[]
 }
 
 model Service {
   id              Int     @id @default(autoincrement())
-  businessId      Int
+  branchId        Int
   name            String
   description     String?
   durationMinutes Int
   price           Decimal @db.Decimal(10, 2)
   retiredAt       DateTime? @db.Timestamptz(3) // when dado de baja; null while offered
 
-  business Business  @relation(fields: [businessId], references: [id])
+  branch   Branch    @relation(fields: [branchId], references: [id])
   bookings Booking[]
 }
 

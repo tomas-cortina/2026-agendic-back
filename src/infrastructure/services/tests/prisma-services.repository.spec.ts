@@ -6,7 +6,7 @@ import { PrismaServicesRepository } from '../prisma-services.repository';
 
 const SERVICE_ROW = {
   id: 1,
-  businessId: 1,
+  branchId: 1,
   name: 'Haircut',
   description: 'A basic haircut',
   durationMinutes: 30,
@@ -16,7 +16,7 @@ const SERVICE_ROW = {
 
 const SERVICE: Service = {
   id: 1,
-  businessId: 1,
+  branchId: 1,
   name: 'Haircut',
   description: 'A basic haircut',
   durationMinutes: 30,
@@ -50,7 +50,7 @@ describe('PrismaServicesRepository', () => {
 
     await expect(
       repository.create({
-        businessId: 1,
+        branchId: 1,
         name: 'Haircut',
         description: 'A basic haircut',
         durationMinutes: 30,
@@ -59,14 +59,14 @@ describe('PrismaServicesRepository', () => {
     ).resolves.toEqual(SERVICE);
   });
 
-  it('lists only active Services of a Business', async () => {
+  it('lists only active Services of a Branch', async () => {
     prisma.service.findMany.mockResolvedValue([SERVICE_ROW]);
 
-    await expect(repository.listActiveByBusiness(1)).resolves.toEqual([
+    await expect(repository.listActiveByBranch(1)).resolves.toEqual([
       SERVICE,
     ]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
-      where: { businessId: 1, retiredAt: null },
+      where: { branchId: 1, retiredAt: null },
     });
   });
 
@@ -86,7 +86,7 @@ describe('PrismaServicesRepository', () => {
     const calls = {
       create: () =>
         repository.create({
-          businessId: 1,
+          branchId: 1,
           name: 'Haircut',
           description: null,
           durationMinutes: 30,

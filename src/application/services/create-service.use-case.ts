@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  BRANCHES_REPOSITORY,
+  BranchesRepository,
+} from '../../domain/branches/branches.repository';
+import {
   BUSINESSES_REPOSITORY,
   BusinessesRepository,
 } from '../../domain/businesses/businesses.repository';
@@ -8,25 +12,27 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { assertOwner } from '../businesses/assert-owner';
+import { assertBranchOwner } from '../branches/assert-branch-owner';
 
 @Injectable()
 export class CreateServiceUseCase {
   constructor(
     @Inject(BUSINESSES_REPOSITORY)
     private readonly businesses: BusinessesRepository,
+    @Inject(BRANCHES_REPOSITORY)
+    private readonly branches: BranchesRepository,
     @Inject(SERVICES_REPOSITORY)
     private readonly services: ServicesRepository,
   ) {}
 
   async execute(
     userId: number,
-    businessId: number,
+    branchId: number,
     input: CreateServiceInput,
   ): Promise<Service> {
-    assertOwner(await this.businesses.findById(businessId), userId);
+    await assertBranchOwner(this.branches, this.businesses, branchId, userId);
     return this.services.create({
-      businessId,
+      branchId,
       name: input.name,
       description: input.description ?? null,
       durationMinutes: input.durationMinutes,
