@@ -13,7 +13,7 @@ import { BranchesModule } from './branches/branches.module';
 import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repository';
 import { BusinessesModule } from './businesses/businesses.module';
 import { PrismaEmployeesRepository } from './employees/prisma-employees.repository';
-import { LoggingMailer } from './logging-mailer';
+import { NodemailerMailer } from './nodemailer-mailer';
 import { PrismaService } from './prisma.service';
 import { PrismaServicesRepository } from './services/prisma-services.repository';
 import { ServicesModule } from './services/services.module';
@@ -37,7 +37,7 @@ import { UsersModule } from './users/users.module';
   providers: [
     PrismaService,
     { provide: CLOCK, useClass: SystemClock },
-    { provide: MAILER, useClass: LoggingMailer },
+    { provide: MAILER, useClass: NodemailerMailer },
     { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
     { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
     { provide: SESSIONS_REPOSITORY, useClass: PrismaSessionsRepository },
