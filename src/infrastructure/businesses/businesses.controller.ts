@@ -13,6 +13,9 @@ import { GetBusinessUseCase } from '../../application/businesses/get-business.us
 import { ListBusinessesUseCase } from '../../application/businesses/list-businesses.use-case';
 import { UpdateBusinessUseCase } from '../../application/businesses/update-business.use-case';
 import { Session } from '../../domain/sessions/session';
+import { presentBranch } from '../branches/branch.presenter';
+import { presentEmployee } from '../employees/employee.presenter';
+import { presentService } from '../services/service.presenter';
 import { CurrentSession, SessionGuard } from '../sessions/session.guard';
 import { presentBusiness } from './business.presenter';
 import { CreateBusinessDto, UpdateBusinessDto } from './businesses.dto';
@@ -32,9 +35,16 @@ export class BusinessesController {
     @CurrentSession() session: Session,
     @Body() dto: CreateBusinessDto,
   ) {
-    return presentBusiness(
-      await this.createBusinessUseCase.execute(session.userId, dto),
+    const created = await this.createBusinessUseCase.execute(
+      session.userId,
+      dto,
     );
+    return {
+      business: presentBusiness(created.business),
+      branch: presentBranch(created.branch),
+      service: presentService(created.service),
+      employee: presentEmployee(created.employee),
+    };
   }
 
   @Patch(':id')

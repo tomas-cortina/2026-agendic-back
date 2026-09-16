@@ -2,7 +2,10 @@ import { ConflictError, DatabaseOperationError, NotFoundError } from '../../../d
 import { Service } from '../../../domain/services/service';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
-import { PrismaServicesRepository } from '../prisma-services.repository';
+import {
+  PrismaServicesRepository,
+  VISIBLE_EMPLOYEES,
+} from '../prisma-services.repository';
 
 const SERVICE_ROW = {
   id: 1,
@@ -12,6 +15,7 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20', // Prisma returns Decimal columns as a Decimal-like; Number() reads a numeric string just as well
   retiredAt: null,
+  employees: [{ id: 7, name: 'Ana Pérez' }],
 };
 
 const SERVICE: Service = {
@@ -22,6 +26,7 @@ const SERVICE: Service = {
   durationMinutes: 30,
   price: 20,
   retiredAt: null,
+  employees: [{ id: 7, name: 'Ana Pérez' }],
 };
 
 const knownError = (code: string) =>
@@ -45,7 +50,7 @@ describe('PrismaServicesRepository', () => {
 
   beforeEach(() => jest.resetAllMocks());
 
-  it('creates a Service, converting its Decimal price to a number', async () => {
+  it('creates a Service in charge of its Employees, converting its Decimal price to a number', async () => {
     prisma.service.create.mockResolvedValue(SERVICE_ROW);
 
     await expect(
@@ -55,8 +60,20 @@ describe('PrismaServicesRepository', () => {
         description: 'A basic haircut',
         durationMinutes: 30,
         price: 20,
+        employeeIds: [7, 8],
       }),
     ).resolves.toEqual(SERVICE);
+    expect(prisma.service.create).toHaveBeenCalledWith({
+      data: {
+        branchId: 1,
+        name: 'Haircut',
+        description: 'A basic haircut',
+        durationMinutes: 30,
+        price: 20,
+        employees: { connect: [{ id: 7 }, { id: 8 }] },
+      },
+      include: VISIBLE_EMPLOYEES,
+    });
   });
 
   it('lists only active Services of a Branch', async () => {
@@ -67,6 +84,13 @@ describe('PrismaServicesRepository', () => {
     ]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
       where: { branchId: 1, retiredAt: null },
+      // Of the Employees in charge, only the verified ones not retired, and never their email.
+      include: {
+        employees: {
+          where: { emailVerifiedAt: { not: null }, retiredAt: null },
+          select: { id: true, name: true },
+        },
+      },
     });
   });
 
@@ -79,6 +103,7 @@ describe('PrismaServicesRepository', () => {
     expect(prisma.service.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: { retiredAt },
+      include: VISIBLE_EMPLOYEES,
     });
   });
 
@@ -91,6 +116,7 @@ describe('PrismaServicesRepository', () => {
           description: null,
           durationMinutes: 30,
           price: 20,
+          employeeIds: [7],
         }),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),

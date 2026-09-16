@@ -7,4 +7,5 @@ export const presentService = (service: Service) => ({
   description: service.description,
   durationMinutes: service.durationMinutes,
   price: service.price,
+  employees: service.employees.map(({ id, name }) => ({ id, name })),
 });

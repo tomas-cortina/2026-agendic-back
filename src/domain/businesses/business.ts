@@ -1,3 +1,6 @@
+import { CreateBranchInput } from '../branches/branch';
+import { CreateServiceInput } from '../services/service';
+
 export interface Business {
   id: number;
   name: string;
@@ -5,9 +8,12 @@ export interface Business {
   ownerId: number;
 }
 
+/** A Negocio is created complete: it, its first Sucursal, its first Servicio and the Dueño as its Empleado. */
 export interface CreateBusinessInput {
-  name: string;
-  description: string;
+  business: { name: string; description: string };
+  branch: CreateBranchInput;
+  /** No `employeeIds`: the Dueño is the only Empleado there is to put in charge. */
+  service: Omit<CreateServiceInput, 'employeeIds'>;
 }
 
 export interface UpdateBusinessInput {

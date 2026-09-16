@@ -1,5 +1,8 @@
 import {
+  ANA,
+  ANAS_BRANCH,
   ANAS_BUSINESS,
+  ANAS_EMPLOYEE,
   bearer,
   createTestApp,
   OTHER_SESSION_ID,
@@ -9,6 +12,46 @@ import {
   TestApp,
 } from '../../test-app';
 
+const BUSINESS_PART = {
+  name: ANAS_BUSINESS.name,
+  description: ANAS_BUSINESS.description,
+};
+
+const BRANCH_PART = {
+  name: ANAS_BRANCH.name,
+  address: ANAS_BRANCH.address,
+  opensAt: ANAS_BRANCH.opensAt,
+  closesAt: ANAS_BRANCH.closesAt,
+};
+
+const SERVICE_PART = {
+  name: 'Haircut',
+  description: 'A basic haircut',
+  durationMinutes: 30,
+  price: 20,
+};
+
+const VALID_BODY = {
+  business: BUSINESS_PART,
+  branch: BRANCH_PART,
+  service: SERVICE_PART,
+};
+
+const ANAS_SERVICE = {
+  id: 1,
+  branchId: ANAS_BRANCH.id,
+  ...SERVICE_PART,
+  retiredAt: null,
+  employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
+};
+
+const CREATED = {
+  business: ANAS_BUSINESS,
+  branch: ANAS_BRANCH,
+  service: ANAS_SERVICE,
+  employee: ANAS_EMPLOYEE,
+};
+
 describe('Negocio', () => {
   let t: TestApp;
 
@@ -16,47 +59,144 @@ describe('Negocio', () => {
   afterEach(() => t.app.close());
 
   describe('POST /businesses', () => {
-    beforeEach(() => scriptSession(t));
+    beforeEach(() => {
+      scriptSession(t);
+      t.users.findById.mockResolvedValue(ANA);
+    });
 
-    it("creates a Negocio owned by the current Usuario, given its name and description", async () => {
-      t.businesses.create.mockResolvedValue(ANAS_BUSINESS);
+    it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado', async () => {
+      t.businesses.create.mockResolvedValue(CREATED);
 
       const res = await t.http
         .post('/businesses')
         .set(bearer(SESSION_ID))
-        .send({ name: ANAS_BUSINESS.name, description: ANAS_BUSINESS.description })
+        .send(VALID_BODY)
         .expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith({
-        name: ANAS_BUSINESS.name,
-        description: ANAS_BUSINESS.description,
-        ownerId: ANAS_BUSINESS.ownerId,
+        business: { ...BUSINESS_PART, ownerId: ANA.id },
+        branch: BRANCH_PART,
+        service: SERVICE_PART,
+        employee: {
+          name: ANA.name,
+          email: ANA.email,
+          emailVerifiedAt: t.clock.now(),
+        },
       });
-      expect(res.body).toEqual(ANAS_BUSINESS);
+      expect(res.body).toEqual({
+        business: ANAS_BUSINESS,
+        branch: ANAS_BRANCH,
+        service: {
+          id: ANAS_SERVICE.id,
+          branchId: ANAS_SERVICE.branchId,
+          name: ANAS_SERVICE.name,
+          description: ANAS_SERVICE.description,
+          durationMinutes: ANAS_SERVICE.durationMinutes,
+          price: ANAS_SERVICE.price,
+          employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
+        },
+        employee: {
+          id: ANAS_EMPLOYEE.id,
+          name: ANAS_EMPLOYEE.name,
+          email: ANAS_EMPLOYEE.email,
+          verified: true,
+        },
+      });
     });
 
-    it('answers 401 without a Sesión', async () => {
-      await t.http
-        .post('/businesses')
-        .send({ name: 'x', description: 'y' })
-        .expect(401);
-    });
+    it('creates a Servicio without a description', async () => {
+      t.businesses.create.mockResolvedValue(CREATED);
 
-    it.each([
-      ['a blank name', { name: '  ' }],
-      ['a missing name', { name: undefined }],
-      ['a blank description', { description: '  ' }],
-      ['a missing description', { description: undefined }],
-      ['an unknown field', { ownerId: 999 }],
-    ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post('/businesses')
         .set(bearer(SESSION_ID))
-        .send({ name: 'x', description: 'y', ...override })
-        .expect(400);
+        .send({
+          ...VALID_BODY,
+          service: { ...SERVICE_PART, description: undefined },
+        })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          service: { ...SERVICE_PART, description: null },
+        }),
+      );
+    });
+
+    it('lets the same Usuario create a further Negocio the same way', async () => {
+      const second = {
+        ...CREATED,
+        business: { ...ANAS_BUSINESS, id: 2, name: "Ana's Spa" },
+      };
+      t.businesses.create.mockResolvedValueOnce(CREATED);
+      t.businesses.create.mockResolvedValueOnce(second);
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(SESSION_ID))
+        .send(VALID_BODY)
+        .expect(201);
+      const res = await t.http
+        .post('/businesses')
+        .set(bearer(SESSION_ID))
+        .send({ ...VALID_BODY, business: { ...BUSINESS_PART, name: "Ana's Spa" } })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledTimes(2);
+      expect(res.body.business.id).toBe(2);
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http.post('/businesses').send(VALID_BODY).expect(401);
+    });
+
+    it('answers 422 when the Sucursal closes before it opens', async () => {
+      await t.http
+        .post('/businesses')
+        .set(bearer(SESSION_ID))
+        .send({
+          ...VALID_BODY,
+          branch: { ...BRANCH_PART, opensAt: '18:00', closesAt: '09:00' },
+        })
+        .expect(422);
 
       expect(t.businesses.create).not.toHaveBeenCalled();
     });
+
+    it.each([
+      ['a blank Negocio name', { business: { ...BUSINESS_PART, name: '  ' } }],
+      ['a missing Negocio name', { business: { description: 'y' } }],
+      [
+        'a missing Negocio description',
+        { business: { name: ANAS_BUSINESS.name } },
+      ],
+      ['a missing Sucursal', { branch: undefined }],
+      ['a blank Sucursal address', { branch: { ...BRANCH_PART, address: ' ' } }],
+      ['a malformed opensAt', { branch: { ...BRANCH_PART, opensAt: '9am' } }],
+      ['a missing Servicio', { service: undefined }],
+      ['a blank Servicio name', { service: { ...SERVICE_PART, name: ' ' } }],
+      [
+        'a fractional durationMinutes',
+        { service: { ...SERVICE_PART, durationMinutes: 1.5 } },
+      ],
+      ['a negative price', { service: { ...SERVICE_PART, price: -1 } }],
+      [
+        'employeeIds on the Servicio',
+        { service: { ...SERVICE_PART, employeeIds: [1] } },
+      ],
+      ['an unknown field', { ownerId: 999 }],
+    ])(
+      'rejects %s with 400, without reaching the repository',
+      async (_, override) => {
+        await t.http
+          .post('/businesses')
+          .set(bearer(SESSION_ID))
+          .send({ ...VALID_BODY, ...override })
+          .expect(400);
+
+        expect(t.businesses.create).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('PATCH /businesses/:id', () => {

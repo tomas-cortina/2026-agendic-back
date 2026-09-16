@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { CLOCK } from '../domain/clock';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
+import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
 import { SESSIONS_REPOSITORY } from '../domain/sessions/sessions.repository';
 import { PASSWORD_HASHER } from '../domain/users/password-hasher';
@@ -10,6 +11,7 @@ import { PrismaBranchesRepository } from './branches/prisma-branches.repository'
 import { BranchesModule } from './branches/branches.module';
 import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repository';
 import { BusinessesModule } from './businesses/businesses.module';
+import { PrismaEmployeesRepository } from './employees/prisma-employees.repository';
 import { PrismaService } from './prisma.service';
 import { PrismaServicesRepository } from './services/prisma-services.repository';
 import { ServicesModule } from './services/services.module';
@@ -39,6 +41,7 @@ import { UsersModule } from './users/users.module';
     { provide: BUSINESSES_REPOSITORY, useClass: PrismaBusinessesRepository },
     { provide: BRANCHES_REPOSITORY, useClass: PrismaBranchesRepository },
     { provide: SERVICES_REPOSITORY, useClass: PrismaServicesRepository },
+    { provide: EMPLOYEES_REPOSITORY, useClass: PrismaEmployeesRepository },
   ],
   exports: [
     CLOCK,
@@ -48,6 +51,7 @@ import { UsersModule } from './users/users.module';
     BUSINESSES_REPOSITORY,
     BRANCHES_REPOSITORY,
     SERVICES_REPOSITORY,
+    EMPLOYEES_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

@@ -1,6 +1,8 @@
 import { ConflictError } from '../../domain/errors';
 import {
+  ANAS_BRANCH,
   ANAS_BUSINESS,
+  ANAS_EMPLOYEE,
   bearer,
   createTestApp,
   OTHER_SESSION_ID,
@@ -10,27 +12,46 @@ import {
   TestApp,
 } from '../../test-app';
 
-const BRANCH = {
-  id: 1,
-  businessId: ANAS_BUSINESS.id,
-  name: 'Downtown',
-  address: '123 Main St',
-  opensAt: '09:00',
-  closesAt: '18:00',
+const BRANCH = ANAS_BRANCH;
+
+/** A second Empleado of Ana's, still waiting on their verification link. */
+const UNVERIFIED_EMPLOYEE = {
+  ...ANAS_EMPLOYEE,
+  id: 2,
+  name: 'Bruno Díaz',
+  email: 'bruno@example.com',
+  emailVerifiedAt: null,
 };
+
+const IN_CHARGE = [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }];
 
 const VALID_SERVICE = {
   name: 'Haircut',
   description: 'A basic haircut',
   durationMinutes: 30,
   price: 20,
+  employeeIds: [ANAS_EMPLOYEE.id],
 };
 
 const SERVICE = {
   id: 1,
   branchId: BRANCH.id,
-  ...VALID_SERVICE,
+  name: VALID_SERVICE.name,
+  description: VALID_SERVICE.description,
+  durationMinutes: VALID_SERVICE.durationMinutes,
+  price: VALID_SERVICE.price,
   retiredAt: null,
+  employees: IN_CHARGE,
+};
+
+const PRESENTED_SERVICE = {
+  id: SERVICE.id,
+  branchId: SERVICE.branchId,
+  name: SERVICE.name,
+  description: SERVICE.description,
+  durationMinutes: SERVICE.durationMinutes,
+  price: SERVICE.price,
+  employees: IN_CHARGE,
 };
 
 describe('Servicio', () => {
@@ -45,6 +66,7 @@ describe('Servicio', () => {
       scriptOtherSession(t);
       t.branches.findById.mockResolvedValue(BRANCH);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.employees.listByIds.mockResolvedValue([ANAS_EMPLOYEE]);
     });
 
     it('creates a Servicio, for the Dueño', async () => {
@@ -60,14 +82,7 @@ describe('Servicio', () => {
         branchId: BRANCH.id,
         ...VALID_SERVICE,
       });
-      expect(res.body).toEqual({
-        id: SERVICE.id,
-        branchId: SERVICE.branchId,
-        name: SERVICE.name,
-        description: SERVICE.description,
-        durationMinutes: SERVICE.durationMinutes,
-        price: SERVICE.price,
-      });
+      expect(res.body).toEqual(PRESENTED_SERVICE);
     });
 
     it('creates a Servicio without a description', async () => {
@@ -85,7 +100,83 @@ describe('Servicio', () => {
         description: null,
         durationMinutes: VALID_SERVICE.durationMinutes,
         price: VALID_SERVICE.price,
+        employeeIds: VALID_SERVICE.employeeIds,
       });
+    });
+
+    it('puts several Empleados in charge when only one of them is verified', async () => {
+      t.employees.listByIds.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        UNVERIFIED_EMPLOYEE,
+      ]);
+      t.services.create.mockResolvedValue(SERVICE);
+
+      await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(SESSION_ID))
+        .send({
+          ...VALID_SERVICE,
+          employeeIds: [ANAS_EMPLOYEE.id, UNVERIFIED_EMPLOYEE.id],
+        })
+        .expect(201);
+
+      expect(t.services.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          employeeIds: [ANAS_EMPLOYEE.id, UNVERIFIED_EMPLOYEE.id],
+        }),
+      );
+    });
+
+    it('answers 422 when no Empleado in charge is verified', async () => {
+      t.employees.listByIds.mockResolvedValue([UNVERIFIED_EMPLOYEE]);
+
+      await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(SESSION_ID))
+        .send({ ...VALID_SERVICE, employeeIds: [UNVERIFIED_EMPLOYEE.id] })
+        .expect(422);
+
+      expect(t.services.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 for an Empleado of another Negocio', async () => {
+      t.employees.listByIds.mockResolvedValue([
+        { ...ANAS_EMPLOYEE, businessId: ANAS_BUSINESS.id + 1 },
+      ]);
+
+      await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(SESSION_ID))
+        .send(VALID_SERVICE)
+        .expect(422);
+
+      expect(t.services.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 for an Empleado dado de baja', async () => {
+      t.employees.listByIds.mockResolvedValue([
+        { ...ANAS_EMPLOYEE, retiredAt: new Date('2026-01-01T00:00:00.000Z') },
+      ]);
+
+      await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(SESSION_ID))
+        .send(VALID_SERVICE)
+        .expect(422);
+
+      expect(t.services.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 for an unknown employeeId', async () => {
+      t.employees.listByIds.mockResolvedValue([]);
+
+      await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(SESSION_ID))
+        .send({ ...VALID_SERVICE, employeeIds: [999] })
+        .expect(422);
+
+      expect(t.services.create).not.toHaveBeenCalled();
     });
 
     it('answers 401 without a Sesión', async () => {
@@ -135,6 +226,9 @@ describe('Servicio', () => {
       ['a missing durationMinutes', { durationMinutes: undefined }],
       ['a negative price', { price: -1 }],
       ['a missing price', { price: undefined }],
+      ['missing employeeIds', { employeeIds: undefined }],
+      ['empty employeeIds', { employeeIds: [] }],
+      ['a non-numeric employeeId', { employeeIds: ['one'] }],
     ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
@@ -278,7 +372,7 @@ describe('Servicio', () => {
   });
 
   describe('GET /branches/:id/services', () => {
-    it("lists a Sucursal's active Servicios without a Sesión", async () => {
+    it("lists a Sucursal's active Servicios, and who attends each, without a Sesión", async () => {
       t.branches.findById.mockResolvedValue(BRANCH);
       t.services.listActiveByBranch.mockResolvedValue([SERVICE]);
 
@@ -286,16 +380,8 @@ describe('Servicio', () => {
         .get(`/branches/${BRANCH.id}/services`)
         .expect(200);
 
-      expect(res.body).toEqual([
-        {
-          id: SERVICE.id,
-          branchId: SERVICE.branchId,
-          name: SERVICE.name,
-          description: SERVICE.description,
-          durationMinutes: SERVICE.durationMinutes,
-          price: SERVICE.price,
-        },
-      ]);
+      expect(res.body).toEqual([PRESENTED_SERVICE]);
+      expect(JSON.stringify(res.body)).not.toContain(ANAS_EMPLOYEE.email);
     });
 
     it('answers 404 for an unknown Sucursal', async () => {

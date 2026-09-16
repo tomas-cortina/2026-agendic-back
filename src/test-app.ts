@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
+import { Branch } from './domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
@@ -12,6 +13,11 @@ import {
   BusinessesRepository,
 } from './domain/businesses/businesses.repository';
 import { CLOCK, Clock } from './domain/clock';
+import { Employee } from './domain/employees/employee';
+import {
+  EMPLOYEES_REPOSITORY,
+  EmployeesRepository,
+} from './domain/employees/employees.repository';
 import {
   SERVICES_REPOSITORY,
   ServicesRepository,
@@ -77,6 +83,9 @@ export async function createTestApp() {
     listByBusiness: jest.fn(),
     update: jest.fn(),
   };
+  const employees: jest.Mocked<EmployeesRepository> = {
+    listByIds: jest.fn(),
+  };
   const services: jest.Mocked<ServicesRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
@@ -99,6 +108,8 @@ export async function createTestApp() {
     .useValue(branches)
     .overrideProvider(SERVICES_REPOSITORY)
     .useValue(services)
+    .overrideProvider(EMPLOYEES_REPOSITORY)
+    .useValue(employees)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -111,6 +122,7 @@ export async function createTestApp() {
     businesses,
     branches,
     services,
+    employees,
     http: request(app.getHttpServer()),
   };
 }
@@ -146,6 +158,25 @@ export const ANAS_BUSINESS: Business = {
   name: "Ana's Salon",
   description: 'Hair and nails',
   ownerId: ANA.id,
+};
+
+export const ANAS_BRANCH: Branch = {
+  id: 1,
+  businessId: ANAS_BUSINESS.id,
+  name: 'Downtown',
+  address: '123 Main St',
+  opensAt: '09:00',
+  closesAt: '18:00',
+};
+
+/** Ana as the Empleado of her own Negocio: verified at the Clock's starting now. */
+export const ANAS_EMPLOYEE: Employee = {
+  id: 1,
+  businessId: ANAS_BUSINESS.id,
+  name: ANA.name,
+  email: ANA.email,
+  emailVerifiedAt: new TestClock().now(),
+  retiredAt: null,
 };
 
 export const SESSION_ID = 'session-1';

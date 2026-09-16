@@ -1,7 +1,8 @@
-import { IsInt, IsNumber, Min } from 'class-validator';
+import { ArrayNotEmpty, IsInt, IsNumber, Min } from 'class-validator';
 import { IfPresent, IsName, IsText } from '../users/users.dto';
 
-export class CreateServiceDto {
+/** The Servicio's own fields, shared with the Servicio part of POST /businesses. */
+export class ServiceFieldsDto {
   @IsName()
   name!: string;
 
@@ -16,6 +17,12 @@ export class CreateServiceDto {
   @IsNumber()
   @Min(0)
   price!: number;
+}
+
+export class CreateServiceDto extends ServiceFieldsDto {
+  @ArrayNotEmpty()
+  @IsInt({ each: true })
+  employeeIds!: number[];
 }
 
 export class UpdateServiceDto {

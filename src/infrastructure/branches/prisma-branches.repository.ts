@@ -66,10 +66,10 @@ export class PrismaBranchesRepository implements BranchesRepository {
   }
 }
 
-const toTime = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00.000Z`);
+export const toTime = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00.000Z`);
 const fromTime = (date: Date) => date.toISOString().slice(11, 16);
 
-const toBranch = (row: BranchRow): Branch => ({
+export const toBranch = (row: BranchRow): Branch => ({
   id: row.id,
   businessId: row.businessId,
   name: row.name,

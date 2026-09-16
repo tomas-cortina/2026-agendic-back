@@ -8,7 +8,7 @@ export interface ServicesRepository {
     data: Pick<
       Service,
       'branchId' | 'name' | 'description' | 'durationMinutes' | 'price'
-    >,
+    > & { employeeIds: number[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
   listActiveByBranch(branchId: number): Promise<Service[]>;
