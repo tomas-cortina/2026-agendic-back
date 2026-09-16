@@ -4,5 +4,6 @@ export const presentUser = (user: User) => ({
   id: user.id,
   name: user.name,
   email: user.email,
+  ...(user.pendingEmail ? { pendingEmail: user.pendingEmail } : {}),
   role: user.role,
 });

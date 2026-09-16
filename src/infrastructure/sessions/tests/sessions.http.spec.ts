@@ -61,6 +61,16 @@ describe('Sesión', () => {
           t.passwordHasher.verify.mockResolvedValue(false);
         },
       ],
+      [
+        'a wrong password on an unverified Usuario',
+        () => {
+          t.users.findByEmail.mockResolvedValue({
+            ...ANA,
+            emailVerifiedAt: null,
+          });
+          t.passwordHasher.verify.mockResolvedValue(false);
+        },
+      ],
     ])('answers %s with the same 401', async (_, script) => {
       script();
 
@@ -70,6 +80,14 @@ describe('Sesión', () => {
         statusCode: 401,
         message: 'Invalid email or password',
       });
+      expect(t.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 403, distinguishable from the generic 401, when the password is right but the email is unverified', async () => {
+      t.users.findByEmail.mockResolvedValue({ ...ANA, emailVerifiedAt: null });
+      t.passwordHasher.verify.mockResolvedValue(true);
+
+      await t.http.post('/sessions').send(credentials).expect(403);
       expect(t.sessions.create).not.toHaveBeenCalled();
     });
 

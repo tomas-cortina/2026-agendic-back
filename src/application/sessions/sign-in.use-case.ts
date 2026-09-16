@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '../../domain/clock';
-import { UnauthenticatedError } from '../../domain/errors';
+import { ForbiddenError, UnauthenticatedError } from '../../domain/errors';
 import {
   Session,
   sessionExpiresAt,
@@ -37,6 +37,7 @@ export class SignInUseCase {
     }
     if (!(await this.passwordHasher.verify(password, user.passwordHash)))
       throw new UnauthenticatedError(INVALID_CREDENTIALS);
+    if (!user.emailVerifiedAt) throw new ForbiddenError('Email not verified');
     return this.sessions.create({
       userId: user.id,
       expiresAt: sessionExpiresAt(this.clock.now()),

@@ -49,3 +49,13 @@ export class UpdateMeDto {
   @IsNormalizedEmail()
   email?: string;
 }
+
+export class VerifyEmailDto {
+  @IsString()
+  token!: string;
+}
+
+export class ResendVerificationDto {
+  @IsNormalizedEmail()
+  email!: string;
+}

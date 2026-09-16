@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { CLOCK } from '../domain/clock';
+import { MAILER } from '../domain/mailer';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
@@ -12,6 +13,7 @@ import { BranchesModule } from './branches/branches.module';
 import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repository';
 import { BusinessesModule } from './businesses/businesses.module';
 import { PrismaEmployeesRepository } from './employees/prisma-employees.repository';
+import { LoggingMailer } from './logging-mailer';
 import { PrismaService } from './prisma.service';
 import { PrismaServicesRepository } from './services/prisma-services.repository';
 import { ServicesModule } from './services/services.module';
@@ -35,6 +37,7 @@ import { UsersModule } from './users/users.module';
   providers: [
     PrismaService,
     { provide: CLOCK, useClass: SystemClock },
+    { provide: MAILER, useClass: LoggingMailer },
     { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
     { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
     { provide: SESSIONS_REPOSITORY, useClass: PrismaSessionsRepository },
@@ -45,6 +48,7 @@ import { UsersModule } from './users/users.module';
   ],
   exports: [
     CLOCK,
+    MAILER,
     PASSWORD_HASHER,
     USERS_REPOSITORY,
     SESSIONS_REPOSITORY,

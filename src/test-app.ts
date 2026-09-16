@@ -18,6 +18,7 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from './domain/employees/employees.repository';
+import { Mailer, MAILER } from './domain/mailer';
 import {
   SERVICES_REPOSITORY,
   ServicesRepository,
@@ -61,6 +62,12 @@ export async function createTestApp() {
     findById: jest.fn(),
     findByEmail: jest.fn(),
     update: jest.fn(),
+    setPendingEmail: jest.fn(),
+    issueVerificationToken: jest.fn(),
+    verifyEmail: jest.fn(),
+  };
+  const mailer: jest.Mocked<Mailer> = {
+    sendVerificationLink: jest.fn(),
   };
   const sessions: jest.Mocked<SessionsRepository> = {
     create: jest.fn(),
@@ -102,6 +109,8 @@ export async function createTestApp() {
     .useValue(sessions)
     .overrideProvider(PASSWORD_HASHER)
     .useValue(passwordHasher)
+    .overrideProvider(MAILER)
+    .useValue(mailer)
     .overrideProvider(BUSINESSES_REPOSITORY)
     .useValue(businesses)
     .overrideProvider(BRANCHES_REPOSITORY)
@@ -119,6 +128,7 @@ export async function createTestApp() {
     users,
     sessions,
     passwordHasher,
+    mailer,
     businesses,
     branches,
     services,
@@ -133,8 +143,10 @@ export const ANA: User = {
   id: 1,
   name: 'Ana Pérez',
   email: 'ana@example.com',
+  pendingEmail: null,
   passwordHash: 'stored-hash',
   role: Role.USER,
+  emailVerifiedAt: new Date('2025-12-01T00:00:00.000Z'),
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -148,8 +160,10 @@ export const BRUNO: User = {
   id: 2,
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
+  pendingEmail: null,
   passwordHash: 'stored-hash',
   role: Role.USER,
+  emailVerifiedAt: new Date('2025-12-01T00:00:00.000Z'),
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
