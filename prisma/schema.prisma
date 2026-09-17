@@ -87,12 +87,14 @@ model Service {
 }
 
 model Employee {
-  id              Int       @id @default(autoincrement())
-  businessId      Int
-  name            String
-  email           String
-  emailVerifiedAt DateTime? @db.Timestamptz(3) // null while the verification link is still pending
-  retiredAt       DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
+  id                         Int       @id @default(autoincrement())
+  businessId                 Int
+  name                       String
+  email                      String
+  emailVerifiedAt            DateTime? @db.Timestamptz(3) // null while the verification link is still pending
+  retiredAt                  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
+  verificationTokenHash      String?   @unique // sha256 of the token, never the token itself
+  verificationTokenExpiresAt DateTime? @db.Timestamptz(3)
 
   business Business  @relation(fields: [businessId], references: [id])
   services Service[]
@@ -100,17 +102,17 @@ model Employee {
 }
 
 model Booking {
-  id                          Int           @id @default(autoincrement())
-  serviceId                   Int
-  employeeId                  Int
-  clientName                  String
-  clientEmail                 String
-  startsAt                    DateTime      @db.Timestamptz(3)
-  endsAt                      DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
-  status                      BookingStatus @default(UNVERIFIED)
-  verificationTokenHash       String? // sha256 of the token, never the token itself
-  verificationTokenExpiresAt  DateTime?     @db.Timestamptz(3)
-  createdAt                   DateTime      @default(now()) @db.Timestamptz(3)
+  id                         Int           @id @default(autoincrement())
+  serviceId                  Int
+  employeeId                 Int
+  clientName                 String
+  clientEmail                String
+  startsAt                   DateTime      @db.Timestamptz(3)
+  endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status                     BookingStatus @default(UNVERIFIED)
+  verificationTokenHash      String? // sha256 of the token, never the token itself
+  verificationTokenExpiresAt DateTime?     @db.Timestamptz(3)
+  createdAt                  DateTime      @default(now()) @db.Timestamptz(3)
 
   service  Service  @relation(fields: [serviceId], references: [id])
   employee Employee @relation(fields: [employeeId], references: [id])

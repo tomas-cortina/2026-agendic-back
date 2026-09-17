@@ -92,6 +92,12 @@ export async function createTestApp() {
   };
   const employees: jest.Mocked<EmployeesRepository> = {
     listByIds: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+    listActiveByBusiness: jest.fn(),
+    update: jest.fn(),
+    issueVerificationToken: jest.fn(),
+    verifyEmail: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
     create: jest.fn(),

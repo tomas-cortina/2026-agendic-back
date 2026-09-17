@@ -1,9 +1,22 @@
 import { Injectable } from '@nestjs/common';
+import { createHash, randomBytes } from 'node:crypto';
 import { Employee } from '../../domain/employees/employee';
-import { EmployeesRepository } from '../../domain/employees/employees.repository';
-import { DatabaseOperationError } from '../../domain/errors';
-import { Employee as EmployeeRow } from '../../generated/prisma/client';
+import {
+  CreateEmployeeData,
+  EmployeesRepository,
+} from '../../domain/employees/employees.repository';
+import {
+  BusinessRuleError,
+  ConflictError,
+  DatabaseOperationError,
+  NotFoundError,
+} from '../../domain/errors';
+import { Employee as EmployeeRow, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+
+/** Stores only a hash of each verification token, so a leaked table can't be used to verify an email. */
+const hash = (token: string) =>
+  createHash('sha256').update(token).digest('base64url');
 
 @Injectable()
 export class PrismaEmployeesRepository implements EmployeesRepository {
@@ -15,6 +28,75 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
         .findMany({ where: { id: { in: ids } } })
         .catch(translateError)
     ).map(toEmployee);
+  }
+
+  async create(data: CreateEmployeeData) {
+    return toEmployee(
+      await this.prisma.employee.create({ data }).catch(translateError),
+    );
+  }
+
+  async findById(id: number) {
+    const row = await this.prisma.employee
+      .findUnique({ where: { id } })
+      .catch(translateError);
+    return row && toEmployee(row);
+  }
+
+  async listActiveByBusiness(businessId: number) {
+    return (
+      await this.prisma.employee
+        .findMany({ where: { businessId, retiredAt: null } })
+        .catch(translateError)
+    ).map(toEmployee);
+  }
+
+  async update(id: number, data: Partial<Pick<Employee, 'name'>>) {
+    return toEmployee(
+      await this.prisma.employee
+        .update({ where: { id }, data })
+        .catch(translateError),
+    );
+  }
+
+  async issueVerificationToken(employeeId: number, expiresAt: Date) {
+    const token = randomBytes(32).toString('base64url');
+    await this.prisma.employee
+      .update({
+        where: { id: employeeId },
+        data: {
+          verificationTokenHash: hash(token),
+          verificationTokenExpiresAt: expiresAt,
+        },
+      })
+      .catch(translateError);
+    return token;
+  }
+
+  async verifyEmail(token: string, now: Date) {
+    const row = await this.prisma.employee
+      .findUnique({ where: { verificationTokenHash: hash(token) } })
+      .catch(translateError);
+    if (
+      !row ||
+      !row.verificationTokenExpiresAt ||
+      row.verificationTokenExpiresAt <= now
+    )
+      throw new BusinessRuleError(
+        'Unknown, used or expired verification token',
+      );
+    return toEmployee(
+      await this.prisma.employee
+        .update({
+          where: { id: row.id },
+          data: {
+            emailVerifiedAt: now,
+            verificationTokenHash: null,
+            verificationTokenExpiresAt: null,
+          },
+        })
+        .catch(translateError),
+    );
   }
 }
 
@@ -28,6 +110,14 @@ export const toEmployee = (row: EmployeeRow): Employee => ({
 });
 
 const translateError = (error: unknown): never => {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2002')
+      throw new ConflictError('Employee email already in use', {
+        cause: error,
+      });
+    if (error.code === 'P2025')
+      throw new NotFoundError('Employee not found', { cause: error });
+  }
   throw new DatabaseOperationError('Database operation failed', {
     cause: error,
   });

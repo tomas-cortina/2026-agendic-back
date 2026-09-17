@@ -13,6 +13,7 @@ import { BranchesModule } from './branches/branches.module';
 import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repository';
 import { BusinessesModule } from './businesses/businesses.module';
 import { PrismaEmployeesRepository } from './employees/prisma-employees.repository';
+import { EmployeesModule } from './employees/employees.module';
 import { NodemailerMailer } from './nodemailer-mailer';
 import { PrismaService } from './prisma.service';
 import { PrismaServicesRepository } from './services/prisma-services.repository';
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module';
     BusinessesModule,
     BranchesModule,
     ServicesModule,
+    EmployeesModule,
   ],
   providers: [
     PrismaService,
