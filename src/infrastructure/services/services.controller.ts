@@ -9,14 +9,20 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { AssignEmployeeUseCase } from '../../application/services/assign-employee.use-case';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
 import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
+import { RemoveEmployeeUseCase } from '../../application/services/remove-employee.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
 import { Session } from '../../domain/sessions/session';
 import { CurrentSession, SessionGuard } from '../sessions/session.guard';
 import { presentService } from './service.presenter';
-import { CreateServiceDto, UpdateServiceDto } from './services.dto';
+import {
+  AssignEmployeeDto,
+  CreateServiceDto,
+  UpdateServiceDto,
+} from './services.dto';
 
 @Controller()
 export class ServicesController {
@@ -25,6 +31,8 @@ export class ServicesController {
     private readonly updateServiceUseCase: UpdateServiceUseCase,
     private readonly retireServiceUseCase: RetireServiceUseCase,
     private readonly listActiveServicesByBranchUseCase: ListActiveServicesByBranchUseCase,
+    private readonly assignEmployeeUseCase: AssignEmployeeUseCase,
+    private readonly removeEmployeeUseCase: RemoveEmployeeUseCase,
   ) {}
 
   @Post('branches/:id/services')
@@ -58,6 +66,36 @@ export class ServicesController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.retireServiceUseCase.execute(session.userId, id);
+  }
+
+  @Post('services/:id/employees')
+  @UseGuards(SessionGuard)
+  async assignEmployee(
+    @CurrentSession() session: Session,
+    @Param('id', ParseIntPipe) serviceId: number,
+    @Body() dto: AssignEmployeeDto,
+  ) {
+    return presentService(
+      await this.assignEmployeeUseCase.execute(
+        session.userId,
+        serviceId,
+        dto.employeeId,
+      ),
+    );
+  }
+
+  @Delete('services/:id/employees/:employeeId')
+  @UseGuards(SessionGuard)
+  async removeEmployee(
+    @CurrentSession() session: Session,
+    @Param('id', ParseIntPipe) serviceId: number,
+    @Param('employeeId', ParseIntPipe) employeeId: number,
+  ) {
+    return this.removeEmployeeUseCase.execute(
+      session.userId,
+      serviceId,
+      employeeId,
+    );
   }
 
   @Get('branches/:id/services')

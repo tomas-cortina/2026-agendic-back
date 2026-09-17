@@ -371,6 +371,208 @@ describe('Servicio', () => {
     });
   });
 
+  describe('POST /services/:id/employees', () => {
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.services.findById.mockResolvedValue(SERVICE);
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.employees.findById.mockResolvedValue(UNVERIFIED_EMPLOYEE);
+    });
+
+    it('puts the Empleado in charge of the Servicio, for the Dueño', async () => {
+      t.services.addEmployee.mockResolvedValue({
+        ...SERVICE,
+        employees: [...IN_CHARGE, { id: UNVERIFIED_EMPLOYEE.id, name: UNVERIFIED_EMPLOYEE.name }],
+      });
+
+      const res = await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(SESSION_ID))
+        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .expect(201);
+
+      expect(t.services.addEmployee).toHaveBeenCalledWith(
+        SERVICE.id,
+        UNVERIFIED_EMPLOYEE.id,
+      );
+      expect(res.body.employees).toContainEqual({
+        id: UNVERIFIED_EMPLOYEE.id,
+        name: UNVERIFIED_EMPLOYEE.name,
+      });
+    });
+
+    it('answers 409 when the Empleado is already in charge', async () => {
+      t.services.addEmployee.mockRejectedValue(
+        new ConflictError('Employee already in charge of this Service'),
+      );
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(SESSION_ID))
+        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .expect(409);
+    });
+
+    it('answers 422 for an Empleado of another Negocio', async () => {
+      t.employees.findById.mockResolvedValue({
+        ...UNVERIFIED_EMPLOYEE,
+        businessId: ANAS_BUSINESS.id + 1,
+      });
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(SESSION_ID))
+        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .expect(422);
+
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 for an Empleado dado de baja', async () => {
+      t.employees.findById.mockResolvedValue({
+        ...UNVERIFIED_EMPLOYEE,
+        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+      });
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(SESSION_ID))
+        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .expect(422);
+
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .expect(401);
+    });
+
+    it('answers 403 for another Usuario', async () => {
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(OTHER_SESSION_ID))
+        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .expect(403);
+
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Servicio', async () => {
+      t.services.findById.mockResolvedValue(null);
+
+      await t.http
+        .post('/services/999/employees')
+        .set(bearer(SESSION_ID))
+        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .expect(404);
+    });
+
+    it('answers 404 for an unknown Empleado', async () => {
+      t.employees.findById.mockResolvedValue(null);
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(SESSION_ID))
+        .send({ employeeId: 999 })
+        .expect(404);
+
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('DELETE /services/:id/employees/:employeeId', () => {
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.services.findById.mockResolvedValue(SERVICE);
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.employees.findById.mockResolvedValue(UNVERIFIED_EMPLOYEE);
+    });
+
+    it('takes the Empleado off the Servicio, for the Dueño', async () => {
+      const res = await t.http
+        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(t.services.removeEmployee).toHaveBeenCalledWith(
+        SERVICE.id,
+        UNVERIFIED_EMPLOYEE.id,
+      );
+      expect(res.body).toEqual({ cancelledBookings: 0 });
+    });
+
+    it("answers 422 and changes nothing when they're the Servicio's last verified Empleado", async () => {
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+
+      await t.http
+        .delete(`/services/${SERVICE.id}/employees/${ANAS_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(422);
+
+      expect(t.services.removeEmployee).not.toHaveBeenCalled();
+    });
+
+    it('removes the last verified Empleado when the Servicio is already dado de baja', async () => {
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+      });
+
+      await t.http
+        .delete(`/services/${SERVICE.id}/employees/${ANAS_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(t.services.removeEmployee).toHaveBeenCalledWith(
+        SERVICE.id,
+        ANAS_EMPLOYEE.id,
+      );
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http
+        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .expect(401);
+    });
+
+    it('answers 403 for another Usuario', async () => {
+      await t.http
+        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .set(bearer(OTHER_SESSION_ID))
+        .expect(403);
+
+      expect(t.services.removeEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Servicio', async () => {
+      t.services.findById.mockResolvedValue(null);
+
+      await t.http
+        .delete(`/services/999/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(404);
+    });
+
+    it('answers 404 for an unknown Empleado', async () => {
+      t.employees.findById.mockResolvedValue(null);
+
+      await t.http
+        .delete(`/services/${SERVICE.id}/employees/999`)
+        .set(bearer(SESSION_ID))
+        .expect(404);
+
+      expect(t.services.removeEmployee).not.toHaveBeenCalled();
+    });
+  });
+
   describe('GET /branches/:id/services', () => {
     it("lists a Sucursal's active Servicios, and who attends each, without a Sesión", async () => {
       t.branches.findById.mockResolvedValue(BRANCH);

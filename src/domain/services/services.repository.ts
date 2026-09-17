@@ -20,4 +20,9 @@ export interface ServicesRepository {
     >,
   ): Promise<Service>;
   retire(id: number, retiredAt: Date): Promise<Service>;
+  /** Throws ConflictError when the Employee is already in charge of the Service. */
+  addEmployee(serviceId: number, employeeId: number): Promise<Service>;
+  removeEmployee(serviceId: number, employeeId: number): Promise<Service>;
+  /** Services not dados de baja that this Employee is in charge of, verified or not. */
+  listActiveByEmployee(employeeId: number): Promise<Service[]>;
 }

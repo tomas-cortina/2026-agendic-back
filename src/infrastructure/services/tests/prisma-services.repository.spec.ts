@@ -44,6 +44,13 @@ describe('PrismaServicesRepository', () => {
       update: jest.fn(),
     },
   };
+  const SERVICE_ROW_WITH_TWO: typeof SERVICE_ROW = {
+    ...SERVICE_ROW,
+    employees: [
+      { id: 7, name: 'Ana Pérez' },
+      { id: 8, name: 'Bruno Díaz' },
+    ],
+  };
   const repository = new PrismaServicesRepository(
     prisma as unknown as PrismaService,
   );
@@ -91,6 +98,64 @@ describe('PrismaServicesRepository', () => {
           select: { id: true, name: true },
         },
       },
+    });
+  });
+
+  describe('addEmployee', () => {
+    it('connects the Employee to the Service', async () => {
+      prisma.service.findUnique.mockResolvedValue({ employees: [] });
+      prisma.service.update.mockResolvedValue(SERVICE_ROW_WITH_TWO);
+
+      await expect(repository.addEmployee(1, 8)).resolves.toEqual({
+        ...SERVICE,
+        employees: SERVICE_ROW_WITH_TWO.employees,
+      });
+      expect(prisma.service.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { employees: { connect: { id: 8 } } },
+        include: VISIBLE_EMPLOYEES,
+      });
+    });
+
+    it('throws ConflictError when the Employee is already connected, without updating', async () => {
+      prisma.service.findUnique.mockResolvedValue({ employees: [{ id: 7 }] });
+
+      await expect(repository.addEmployee(1, 7)).rejects.toBeInstanceOf(
+        ConflictError,
+      );
+      expect(prisma.service.update).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError for an unknown Service', async () => {
+      prisma.service.findUnique.mockResolvedValue(null);
+
+      await expect(repository.addEmployee(999, 7)).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+    });
+  });
+
+  it('disconnects the Employee from the Service', async () => {
+    prisma.service.update.mockResolvedValue(SERVICE_ROW);
+
+    await repository.removeEmployee(1, 7);
+
+    expect(prisma.service.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { employees: { disconnect: { id: 7 } } },
+      include: VISIBLE_EMPLOYEES,
+    });
+  });
+
+  it('lists active Services an Employee is in charge of', async () => {
+    prisma.service.findMany.mockResolvedValue([SERVICE_ROW]);
+
+    await expect(repository.listActiveByEmployee(7)).resolves.toEqual([
+      SERVICE,
+    ]);
+    expect(prisma.service.findMany).toHaveBeenCalledWith({
+      where: { retiredAt: null, employees: { some: { id: 7 } } },
+      include: VISIBLE_EMPLOYEES,
     });
   });
 

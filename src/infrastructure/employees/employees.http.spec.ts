@@ -342,6 +342,98 @@ describe('Empleado', () => {
     );
   });
 
+  describe('DELETE /employees/:id', () => {
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.services.listActiveByEmployee.mockResolvedValue([]);
+    });
+
+    it('gives the Empleado de baja, for the Dueño', async () => {
+      const res = await t.http
+        .delete(`/employees/${ANAS_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(t.employees.retire).toHaveBeenCalledWith(
+        ANAS_EMPLOYEE.id,
+        expect.any(Date),
+      );
+      expect(res.body).toEqual({ cancelledBookings: 0 });
+    });
+
+    it("answers 422 and changes nothing when they're the last verified Empleado of a Servicio not dado de baja", async () => {
+      t.services.listActiveByEmployee.mockResolvedValue([
+        {
+          id: 1,
+          branchId: 1,
+          name: 'Haircut',
+          description: null,
+          durationMinutes: 30,
+          price: 20,
+          retiredAt: null,
+          employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
+        },
+      ]);
+
+      await t.http
+        .delete(`/employees/${ANAS_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(422);
+
+      expect(t.employees.retire).not.toHaveBeenCalled();
+    });
+
+    it('gives them de baja when other Servicios have another verified Empleado', async () => {
+      t.services.listActiveByEmployee.mockResolvedValue([
+        {
+          id: 1,
+          branchId: 1,
+          name: 'Haircut',
+          description: null,
+          durationMinutes: 30,
+          price: 20,
+          retiredAt: null,
+          employees: [
+            { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name },
+            { id: 99, name: 'Bruno Díaz' },
+          ],
+        },
+      ]);
+
+      await t.http
+        .delete(`/employees/${ANAS_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(t.employees.retire).toHaveBeenCalled();
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http.delete(`/employees/${ANAS_EMPLOYEE.id}`).expect(401);
+    });
+
+    it('answers 403 for another Usuario', async () => {
+      await t.http
+        .delete(`/employees/${ANAS_EMPLOYEE.id}`)
+        .set(bearer(OTHER_SESSION_ID))
+        .expect(403);
+
+      expect(t.employees.retire).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Empleado', async () => {
+      t.employees.findById.mockResolvedValue(null);
+
+      await t.http
+        .delete('/employees/999')
+        .set(bearer(SESSION_ID))
+        .expect(404);
+    });
+  });
+
   describe('GET /businesses/:id/employees', () => {
     beforeEach(() => {
       scriptSession(t);

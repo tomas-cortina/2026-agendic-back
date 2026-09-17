@@ -120,6 +120,20 @@ describe('PrismaEmployeesRepository', () => {
     });
   });
 
+  it('retires an Employee, setting retiredAt and taking them off every Service', async () => {
+    const retiredAt = new Date('2026-02-01T00:00:00.000Z');
+    prisma.employee.update.mockResolvedValue({ ...EMPLOYEE, retiredAt });
+
+    await expect(repository.retire(1, retiredAt)).resolves.toEqual({
+      ...EMPLOYEE,
+      retiredAt,
+    });
+    expect(prisma.employee.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { retiredAt, services: { set: [] } },
+    });
+  });
+
   describe('issueVerificationToken', () => {
     it('stores only the SHA-256 of a random token and returns the raw token', async () => {
       prisma.employee.update.mockResolvedValue(EMPLOYEE);

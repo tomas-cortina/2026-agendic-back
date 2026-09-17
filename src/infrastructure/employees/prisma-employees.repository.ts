@@ -59,6 +59,17 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     );
   }
 
+  async retire(id: number, retiredAt: Date) {
+    return toEmployee(
+      await this.prisma.employee
+        .update({
+          where: { id },
+          data: { retiredAt, services: { set: [] } },
+        })
+        .catch(translateError),
+    );
+  }
+
   async issueVerificationToken(employeeId: number, expiresAt: Date) {
     const token = randomBytes(32).toString('base64url');
     await this.prisma.employee

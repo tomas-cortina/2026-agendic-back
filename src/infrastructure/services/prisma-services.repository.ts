@@ -91,6 +91,50 @@ export class PrismaServicesRepository implements ServicesRepository {
         .catch(translateError),
     );
   }
+
+  async addEmployee(serviceId: number, employeeId: number) {
+    const service = await this.prisma.service
+      .findUnique({
+        where: { id: serviceId },
+        select: { employees: { where: { id: employeeId }, select: { id: true } } },
+      })
+      .catch(translateError);
+    if (!service) throw new NotFoundError('Service not found');
+    if (service.employees.length > 0)
+      throw new ConflictError('Employee already in charge of this Service');
+    return toService(
+      await this.prisma.service
+        .update({
+          where: { id: serviceId },
+          data: { employees: { connect: { id: employeeId } } },
+          include: VISIBLE_EMPLOYEES,
+        })
+        .catch(translateError),
+    );
+  }
+
+  async removeEmployee(serviceId: number, employeeId: number) {
+    return toService(
+      await this.prisma.service
+        .update({
+          where: { id: serviceId },
+          data: { employees: { disconnect: { id: employeeId } } },
+          include: VISIBLE_EMPLOYEES,
+        })
+        .catch(translateError),
+    );
+  }
+
+  async listActiveByEmployee(employeeId: number) {
+    return (
+      await this.prisma.service
+        .findMany({
+          where: { retiredAt: null, employees: { some: { id: employeeId } } },
+          include: VISIBLE_EMPLOYEES,
+        })
+        .catch(translateError)
+    ).map(toService);
+  }
 }
 
 export const toService = (row: ServiceRowWithEmployees): Service => ({
