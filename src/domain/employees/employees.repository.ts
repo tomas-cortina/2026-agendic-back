@@ -20,8 +20,11 @@ export interface EmployeesRepository {
   listActiveByBusiness(businessId: number): Promise<Employee[]>;
   /** Leaves undefined fields unchanged. */
   update(id: number, data: Partial<Pick<Employee, 'name'>>): Promise<Employee>;
-  /** Dado de baja: sets retiredAt and takes the Employee off every Service. */
-  retire(id: number, retiredAt: Date): Promise<Employee>;
+  /** Dado de baja: sets retiredAt, takes the Employee off every Service, and cancels their future BOOKED Bookings, atomically. */
+  retire(
+    id: number,
+    retiredAt: Date,
+  ): Promise<{ employee: Employee; cancelledBookings: number }>;
   /** Generates a single-use token expiring at expiresAt, replacing any previous one. Returns the raw token; only its hash is stored. */
   issueVerificationToken(employeeId: number, expiresAt: Date): Promise<string>;
   /**

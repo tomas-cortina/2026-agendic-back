@@ -11,6 +11,7 @@ import {
   Prisma,
   Service as ServiceRow,
 } from '../../generated/prisma/client';
+import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
 
 /** Only the Empleados anyone browsing may see attending a Servicio: verified and not dados de baja. */
@@ -81,15 +82,21 @@ export class PrismaServicesRepository implements ServicesRepository {
   }
 
   async retire(id: number, retiredAt: Date) {
-    return toService(
-      await this.prisma.service
-        .update({
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.service.update({
           where: { id },
           data: { retiredAt },
           include: VISIBLE_EMPLOYEES,
-        })
-        .catch(translateError),
-    );
+        });
+        const cancelledBookings = await cancelFutureBooked(
+          tx,
+          { serviceId: id },
+          retiredAt,
+        );
+        return { service: toService(row), cancelledBookings };
+      })
+      .catch(translateError);
   }
 
   async addEmployee(serviceId: number, employeeId: number) {
@@ -113,16 +120,22 @@ export class PrismaServicesRepository implements ServicesRepository {
     );
   }
 
-  async removeEmployee(serviceId: number, employeeId: number) {
-    return toService(
-      await this.prisma.service
-        .update({
+  async removeEmployee(serviceId: number, employeeId: number, now: Date) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.service.update({
           where: { id: serviceId },
           data: { employees: { disconnect: { id: employeeId } } },
           include: VISIBLE_EMPLOYEES,
-        })
-        .catch(translateError),
-    );
+        });
+        const cancelledBookings = await cancelFutureBooked(
+          tx,
+          { serviceId, employeeId },
+          now,
+        );
+        return { service: toService(row), cancelledBookings };
+      })
+      .catch(translateError);
   }
 
   async listActiveByEmployee(employeeId: number) {

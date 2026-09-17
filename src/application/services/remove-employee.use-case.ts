@@ -7,6 +7,7 @@ import {
   BUSINESSES_REPOSITORY,
   BusinessesRepository,
 } from '../../domain/businesses/businesses.repository';
+import { CLOCK, Clock } from '../../domain/clock';
 import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
@@ -30,6 +31,7 @@ export class RemoveEmployeeUseCase {
     private readonly services: ServicesRepository,
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async execute(
@@ -51,7 +53,11 @@ export class RemoveEmployeeUseCase {
       throw new BusinessRuleError(
         "Cannot remove the Service's last verified Employee",
       );
-    await this.services.removeEmployee(serviceId, employeeId);
-    return { cancelledBookings: 0 };
+    const { cancelledBookings } = await this.services.removeEmployee(
+      serviceId,
+      employeeId,
+      this.clock.now(),
+    );
+    return { cancelledBookings };
   }
 }

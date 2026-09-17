@@ -39,8 +39,10 @@ export class RetireServiceUseCase {
       service.branchId,
       userId,
     );
-    await this.services.retire(serviceId, this.clock.now());
-    // ponytail: Turnos don't exist yet; the cascade that cancels future Bookings arrives in ticket 07.
-    return { id: serviceId, cancelledBookings: 0 };
+    const { cancelledBookings } = await this.services.retire(
+      serviceId,
+      this.clock.now(),
+    );
+    return { id: serviceId, cancelledBookings };
   }
 }

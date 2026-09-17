@@ -5,6 +5,7 @@ import {
   ANAS_EMPLOYEE,
   bearer,
   createTestApp,
+  DAY_MS,
   OTHER_SESSION_ID,
   scriptOtherSession,
   scriptSession,
@@ -336,8 +337,8 @@ describe('Servicio', () => {
       t.branches.findById.mockResolvedValue(BRANCH);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.services.retire.mockResolvedValue({
-        ...SERVICE,
-        retiredAt: new Date(),
+        service: { ...SERVICE, retiredAt: new Date() },
+        cancelledBookings: 0,
       });
     });
 
@@ -349,6 +350,31 @@ describe('Servicio', () => {
 
       expect(t.services.retire).toHaveBeenCalledWith(SERVICE.id, expect.any(Date));
       expect(res.body).toEqual({ id: SERVICE.id, cancelledBookings: 0 });
+    });
+
+    it("uses the Clock's current now as the cascade's cutoff, moving as the Clock advances", async () => {
+      t.clock.advance(2 * DAY_MS);
+
+      await t.http
+        .delete(`/services/${SERVICE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(t.services.retire).toHaveBeenCalledWith(SERVICE.id, t.clock.now());
+    });
+
+    it('reports how many future Turnos it cancelled', async () => {
+      t.services.retire.mockResolvedValue({
+        service: { ...SERVICE, retiredAt: new Date() },
+        cancelledBookings: 3,
+      });
+
+      const res = await t.http
+        .delete(`/services/${SERVICE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(res.body).toEqual({ id: SERVICE.id, cancelledBookings: 3 });
     });
 
     it('answers 401 without a Sesión', async () => {
@@ -493,6 +519,10 @@ describe('Servicio', () => {
       t.branches.findById.mockResolvedValue(BRANCH);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.employees.findById.mockResolvedValue(UNVERIFIED_EMPLOYEE);
+      t.services.removeEmployee.mockResolvedValue({
+        service: SERVICE,
+        cancelledBookings: 0,
+      });
     });
 
     it('takes the Empleado off the Servicio, for the Dueño', async () => {
@@ -504,8 +534,23 @@ describe('Servicio', () => {
       expect(t.services.removeEmployee).toHaveBeenCalledWith(
         SERVICE.id,
         UNVERIFIED_EMPLOYEE.id,
+        expect.any(Date),
       );
       expect(res.body).toEqual({ cancelledBookings: 0 });
+    });
+
+    it('reports how many future Turnos of that Empleado it cancelled', async () => {
+      t.services.removeEmployee.mockResolvedValue({
+        service: SERVICE,
+        cancelledBookings: 2,
+      });
+
+      const res = await t.http
+        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(res.body).toEqual({ cancelledBookings: 2 });
     });
 
     it("answers 422 and changes nothing when they're the Servicio's last verified Empleado", async () => {
@@ -534,6 +579,7 @@ describe('Servicio', () => {
       expect(t.services.removeEmployee).toHaveBeenCalledWith(
         SERVICE.id,
         ANAS_EMPLOYEE.id,
+        expect.any(Date),
       );
     });
 

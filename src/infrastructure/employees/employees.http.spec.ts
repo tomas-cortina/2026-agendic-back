@@ -349,6 +349,10 @@ describe('Empleado', () => {
       t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.services.listActiveByEmployee.mockResolvedValue([]);
+      t.employees.retire.mockResolvedValue({
+        employee: { ...ANAS_EMPLOYEE, retiredAt: new Date() },
+        cancelledBookings: 0,
+      });
     });
 
     it('gives the Empleado de baja, for the Dueño', async () => {
@@ -362,6 +366,20 @@ describe('Empleado', () => {
         expect.any(Date),
       );
       expect(res.body).toEqual({ cancelledBookings: 0 });
+    });
+
+    it('reports how many future Turnos it cancelled', async () => {
+      t.employees.retire.mockResolvedValue({
+        employee: { ...ANAS_EMPLOYEE, retiredAt: new Date() },
+        cancelledBookings: 5,
+      });
+
+      const res = await t.http
+        .delete(`/employees/${ANAS_EMPLOYEE.id}`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(res.body).toEqual({ cancelledBookings: 5 });
     });
 
     it("answers 422 and changes nothing when they're the last verified Empleado of a Servicio not dado de baja", async () => {

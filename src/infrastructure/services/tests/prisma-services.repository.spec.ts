@@ -36,6 +36,10 @@ const knownError = (code: string) =>
   });
 
 describe('PrismaServicesRepository', () => {
+  const tx = {
+    service: { update: jest.fn() },
+    booking: { updateMany: jest.fn() },
+  };
   const prisma = {
     service: {
       create: jest.fn(),
@@ -43,6 +47,7 @@ describe('PrismaServicesRepository', () => {
       findMany: jest.fn(),
       update: jest.fn(),
     },
+    $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
   const SERVICE_ROW_WITH_TWO: typeof SERVICE_ROW = {
     ...SERVICE_ROW,
@@ -55,7 +60,10 @@ describe('PrismaServicesRepository', () => {
     prisma as unknown as PrismaService,
   );
 
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((run) => run(tx));
+  });
 
   it('creates a Service in charge of its Employees, converting its Decimal price to a number', async () => {
     prisma.service.create.mockResolvedValue(SERVICE_ROW);
@@ -135,15 +143,33 @@ describe('PrismaServicesRepository', () => {
     });
   });
 
-  it('disconnects the Employee from the Service', async () => {
-    prisma.service.update.mockResolvedValue(SERVICE_ROW);
+  describe('removeEmployee', () => {
+    const now = new Date('2026-02-01T00:00:00.000Z');
 
-    await repository.removeEmployee(1, 7);
+    it('disconnects the Employee from the Service and cancels their future BOOKED Turnos for it, atomically', async () => {
+      tx.service.update.mockResolvedValue(SERVICE_ROW);
+      tx.booking.updateMany.mockResolvedValue({ count: 2 });
 
-    expect(prisma.service.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: { employees: { disconnect: { id: 7 } } },
-      include: VISIBLE_EMPLOYEES,
+      await expect(repository.removeEmployee(1, 7, now)).resolves.toEqual({
+        service: SERVICE,
+        cancelledBookings: 2,
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(tx.service.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { employees: { disconnect: { id: 7 } } },
+        include: VISIBLE_EMPLOYEES,
+      });
+      expect(tx.booking.updateMany).toHaveBeenCalledWith({
+        where: {
+          serviceId: 1,
+          employeeId: 7,
+          status: 'BOOKED',
+          startsAt: { gt: now },
+        },
+        data: { status: 'CANCELLED' },
+      });
     });
   });
 
@@ -159,16 +185,32 @@ describe('PrismaServicesRepository', () => {
     });
   });
 
-  it('retires a Service by setting retiredAt', async () => {
+  describe('retire', () => {
     const retiredAt = new Date('2026-02-01T00:00:00.000Z');
-    prisma.service.update.mockResolvedValue({ ...SERVICE_ROW, retiredAt });
 
-    await repository.retire(1, retiredAt);
+    it('sets retiredAt and cancels the Service future BOOKED Turnos, atomically', async () => {
+      tx.service.update.mockResolvedValue({ ...SERVICE_ROW, retiredAt });
+      tx.booking.updateMany.mockResolvedValue({ count: 3 });
 
-    expect(prisma.service.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: { retiredAt },
-      include: VISIBLE_EMPLOYEES,
+      await expect(repository.retire(1, retiredAt)).resolves.toEqual({
+        service: { ...SERVICE, retiredAt },
+        cancelledBookings: 3,
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(tx.service.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { retiredAt },
+        include: VISIBLE_EMPLOYEES,
+      });
+      expect(tx.booking.updateMany).toHaveBeenCalledWith({
+        where: {
+          serviceId: 1,
+          status: 'BOOKED',
+          startsAt: { gt: retiredAt },
+        },
+        data: { status: 'CANCELLED' },
+      });
     });
   });
 

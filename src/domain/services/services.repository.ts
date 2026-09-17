@@ -19,10 +19,19 @@ export interface ServicesRepository {
       Pick<Service, 'name' | 'description' | 'durationMinutes' | 'price'>
     >,
   ): Promise<Service>;
-  retire(id: number, retiredAt: Date): Promise<Service>;
+  /** Also cancels the Service's future BOOKED Bookings, atomically. */
+  retire(
+    id: number,
+    retiredAt: Date,
+  ): Promise<{ service: Service; cancelledBookings: number }>;
   /** Throws ConflictError when the Employee is already in charge of the Service. */
   addEmployee(serviceId: number, employeeId: number): Promise<Service>;
-  removeEmployee(serviceId: number, employeeId: number): Promise<Service>;
+  /** Also cancels that pair's future BOOKED Bookings, atomically. */
+  removeEmployee(
+    serviceId: number,
+    employeeId: number,
+    now: Date,
+  ): Promise<{ service: Service; cancelledBookings: number }>;
   /** Services not dados de baja that this Employee is in charge of, verified or not. */
   listActiveByEmployee(employeeId: number): Promise<Service[]>;
 }

@@ -12,6 +12,7 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { Employee as EmployeeRow, Prisma } from '../../generated/prisma/client';
+import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
 
 /** Stores only a hash of each verification token, so a leaked table can't be used to verify an email. */
@@ -60,14 +61,20 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
   }
 
   async retire(id: number, retiredAt: Date) {
-    return toEmployee(
-      await this.prisma.employee
-        .update({
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.employee.update({
           where: { id },
           data: { retiredAt, services: { set: [] } },
-        })
-        .catch(translateError),
-    );
+        });
+        const cancelledBookings = await cancelFutureBooked(
+          tx,
+          { employeeId: id },
+          retiredAt,
+        );
+        return { employee: toEmployee(row), cancelledBookings };
+      })
+      .catch(translateError);
   }
 
   async issueVerificationToken(employeeId: number, expiresAt: Date) {

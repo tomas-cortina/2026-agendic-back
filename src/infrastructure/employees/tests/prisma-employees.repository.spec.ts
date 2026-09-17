@@ -32,6 +32,10 @@ const knownError = (code: string) =>
   });
 
 describe('PrismaEmployeesRepository', () => {
+  const tx = {
+    employee: { update: jest.fn() },
+    booking: { updateMany: jest.fn() },
+  };
   const prisma = {
     employee: {
       findMany: jest.fn(),
@@ -39,12 +43,16 @@ describe('PrismaEmployeesRepository', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
   const repository = new PrismaEmployeesRepository(
     prisma as unknown as PrismaService,
   );
 
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((run) => run(tx));
+  });
 
   it('lists Employees by id, returning only their domain fields', async () => {
     prisma.employee.findMany.mockResolvedValue([
@@ -120,17 +128,31 @@ describe('PrismaEmployeesRepository', () => {
     });
   });
 
-  it('retires an Employee, setting retiredAt and taking them off every Service', async () => {
+  describe('retire', () => {
     const retiredAt = new Date('2026-02-01T00:00:00.000Z');
-    prisma.employee.update.mockResolvedValue({ ...EMPLOYEE, retiredAt });
 
-    await expect(repository.retire(1, retiredAt)).resolves.toEqual({
-      ...EMPLOYEE,
-      retiredAt,
-    });
-    expect(prisma.employee.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: { retiredAt, services: { set: [] } },
+    it('sets retiredAt, takes the Employee off every Service, and cancels their future BOOKED Turnos, atomically', async () => {
+      tx.employee.update.mockResolvedValue({ ...EMPLOYEE, retiredAt });
+      tx.booking.updateMany.mockResolvedValue({ count: 4 });
+
+      await expect(repository.retire(1, retiredAt)).resolves.toEqual({
+        employee: { ...EMPLOYEE, retiredAt },
+        cancelledBookings: 4,
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(tx.employee.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { retiredAt, services: { set: [] } },
+      });
+      expect(tx.booking.updateMany).toHaveBeenCalledWith({
+        where: {
+          employeeId: 1,
+          status: 'BOOKED',
+          startsAt: { gt: retiredAt },
+        },
+        data: { status: 'CANCELLED' },
+      });
     });
   });
 

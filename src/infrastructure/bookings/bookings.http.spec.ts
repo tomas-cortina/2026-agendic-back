@@ -304,6 +304,19 @@ describe('Turno', () => {
       ]);
     });
 
+    it('shows a cascaded Turno as CANCELLED', async () => {
+      t.bookings.listByBusiness.mockResolvedValue([
+        { ...BOOKING, status: BookingStatus.CANCELLED },
+      ]);
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/bookings`)
+        .set(bearer(SESSION_ID))
+        .expect(200);
+
+      expect(res.body).toMatchObject([{ status: 'CANCELLED' }]);
+    });
+
     it('answers 401 without a Sesión', async () => {
       await t.http.get(`/businesses/${ANAS_BUSINESS.id}/bookings`).expect(401);
     });

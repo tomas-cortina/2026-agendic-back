@@ -43,7 +43,10 @@ export class RetireEmployeeUseCase {
       throw new BusinessRuleError(
         "Cannot retire the Employee: they are a Service's last verified Employee",
       );
-    await this.employees.retire(employee.id, this.clock.now());
-    return { cancelledBookings: 0 };
+    const { cancelledBookings } = await this.employees.retire(
+      employee.id,
+      this.clock.now(),
+    );
+    return { cancelledBookings };
   }
 }
