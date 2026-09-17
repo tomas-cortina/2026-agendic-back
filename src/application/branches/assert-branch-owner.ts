@@ -4,6 +4,12 @@ import { BusinessesRepository } from '../../domain/businesses/businesses.reposit
 import { NotFoundError } from '../../domain/errors';
 import { assertOwner } from '../businesses/assert-owner';
 
+export function assertBranchExists(
+  branch: Branch | null,
+): asserts branch is Branch {
+  if (!branch) throw new NotFoundError('Branch not found');
+}
+
 /** Throws NotFoundError for an unknown Branch, then ForbiddenError unless userId owns its Business. */
 export async function assertBranchOwner(
   branches: BranchesRepository,
@@ -12,7 +18,7 @@ export async function assertBranchOwner(
   userId: number,
 ): Promise<Branch> {
   const branch = await branches.findById(branchId);
-  if (!branch) throw new NotFoundError('Branch not found');
+  assertBranchExists(branch);
   assertOwner(await businesses.findById(branch.businessId), userId);
   return branch;
 }

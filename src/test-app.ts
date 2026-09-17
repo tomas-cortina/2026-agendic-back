@@ -7,6 +7,10 @@ import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from './domain/branches/branches.repository';
+import {
+  BOOKINGS_REPOSITORY,
+  BookingsRepository,
+} from './domain/bookings/bookings.repository';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -19,6 +23,7 @@ import {
   EmployeesRepository,
 } from './domain/employees/employees.repository';
 import { Mailer, MAILER } from './domain/mailer';
+import { Service } from './domain/services/service';
 import {
   SERVICES_REPOSITORY,
   ServicesRepository,
@@ -106,6 +111,13 @@ export async function createTestApp() {
     update: jest.fn(),
     retire: jest.fn(),
   };
+  const bookings: jest.Mocked<BookingsRepository> = {
+    create: jest.fn(),
+    hasOverlappingBooked: jest.fn(),
+    findByVerificationToken: jest.fn(),
+    markBooked: jest.fn(),
+    listByBusiness: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -125,6 +137,8 @@ export async function createTestApp() {
     .useValue(services)
     .overrideProvider(EMPLOYEES_REPOSITORY)
     .useValue(employees)
+    .overrideProvider(BOOKINGS_REPOSITORY)
+    .useValue(bookings)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -139,6 +153,7 @@ export async function createTestApp() {
     branches,
     services,
     employees,
+    bookings,
     http: request(app.getHttpServer()),
   };
 }
@@ -197,6 +212,18 @@ export const ANAS_EMPLOYEE: Employee = {
   email: ANA.email,
   emailVerifiedAt: new TestClock().now(),
   retiredAt: null,
+};
+
+/** A Servicio of Ana's Sucursal, attended by Ana. */
+export const ANAS_SERVICE: Service = {
+  id: 1,
+  branchId: ANAS_BRANCH.id,
+  name: 'Haircut',
+  description: 'A basic haircut',
+  durationMinutes: 30,
+  price: 20,
+  retiredAt: null,
+  employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };
 
 export const SESSION_ID = 'session-1';

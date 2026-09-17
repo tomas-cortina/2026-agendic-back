@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { CLOCK } from '../domain/clock';
 import { MAILER } from '../domain/mailer';
+import { BOOKINGS_REPOSITORY } from '../domain/bookings/bookings.repository';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
@@ -8,6 +9,8 @@ import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
 import { SESSIONS_REPOSITORY } from '../domain/sessions/sessions.repository';
 import { PASSWORD_HASHER } from '../domain/users/password-hasher';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
+import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
+import { BookingsModule } from './bookings/bookings.module';
 import { PrismaBranchesRepository } from './branches/prisma-branches.repository';
 import { BranchesModule } from './branches/branches.module';
 import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repository';
@@ -35,6 +38,7 @@ import { UsersModule } from './users/users.module';
     BranchesModule,
     ServicesModule,
     EmployeesModule,
+    BookingsModule,
   ],
   providers: [
     PrismaService,
@@ -47,6 +51,7 @@ import { UsersModule } from './users/users.module';
     { provide: BRANCHES_REPOSITORY, useClass: PrismaBranchesRepository },
     { provide: SERVICES_REPOSITORY, useClass: PrismaServicesRepository },
     { provide: EMPLOYEES_REPOSITORY, useClass: PrismaEmployeesRepository },
+    { provide: BOOKINGS_REPOSITORY, useClass: PrismaBookingsRepository },
   ],
   exports: [
     CLOCK,
@@ -58,6 +63,7 @@ import { UsersModule } from './users/users.module';
     BRANCHES_REPOSITORY,
     SERVICES_REPOSITORY,
     EMPLOYEES_REPOSITORY,
+    BOOKINGS_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}
