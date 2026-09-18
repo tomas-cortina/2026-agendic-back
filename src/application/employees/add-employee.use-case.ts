@@ -10,11 +10,11 @@ import {
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
 import { MAILER, Mailer } from '../../domain/mailer';
-import { verificationTokenExpiresAt } from '../../domain/users/user';
 import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
+import { invitationCodeExpiresAt } from '../../domain/verification-code';
 import { assertOwner } from '../businesses/assert-owner';
 
 export interface AddEmployeeInput {
@@ -22,7 +22,7 @@ export interface AddEmployeeInput {
   email: string;
 }
 
-/** Trusts an email at once when it's an already verified Usuario's; otherwise sends a verification link. */
+/** Trusts an email at once when it's an already verified Usuario's; otherwise sends a verification code. */
 @Injectable()
 export class AddEmployeeUseCase {
   constructor(
@@ -51,11 +51,11 @@ export class AddEmployeeUseCase {
       emailVerifiedAt,
     });
     if (!emailVerifiedAt) {
-      const token = await this.employees.issueVerificationToken(
+      const code = await this.employees.issueVerificationCode(
         employee.id,
-        verificationTokenExpiresAt(now),
+        invitationCodeExpiresAt(now),
       );
-      await this.mailer.sendVerificationLink(employee.email, token);
+      await this.mailer.sendVerificationCode(employee.email, code);
     }
     return employee;
   }

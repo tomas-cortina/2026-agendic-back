@@ -1,7 +1,8 @@
 import {
-  BusinessRuleError,
   ConflictError,
   DatabaseOperationError,
+  ExpiredError,
+  InvalidCodeError,
 } from '../../domain/errors';
 import {
   ANAS_BUSINESS,
@@ -62,8 +63,8 @@ describe('Empleado', () => {
         email: 'bruno@example.com',
         verified: true,
       });
-      expect(t.employees.issueVerificationToken).not.toHaveBeenCalled();
-      expect(t.mailer.sendVerificationLink).not.toHaveBeenCalled();
+      expect(t.employees.issueVerificationCode).not.toHaveBeenCalled();
+      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -80,11 +81,11 @@ describe('Empleado', () => {
           }),
       ],
     ])(
-      'leaves the Empleado pending and sends a verification link when %s',
+      'leaves the Empleado pending and sends a verification code when %s',
       async (_, script) => {
         script();
         t.employees.create.mockResolvedValue(PENDING_EMPLOYEE);
-        t.employees.issueVerificationToken.mockResolvedValue('a-token');
+        t.employees.issueVerificationCode.mockResolvedValue('ABCDEF');
 
         const res = await t.http
           .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
@@ -98,13 +99,13 @@ describe('Empleado', () => {
           email: 'bruno@example.com',
           emailVerifiedAt: null,
         });
-        expect(t.employees.issueVerificationToken).toHaveBeenCalledWith(
+        expect(t.employees.issueVerificationCode).toHaveBeenCalledWith(
           PENDING_EMPLOYEE.id,
           new Date('2026-01-02T12:00:00.000Z'),
         );
-        expect(t.mailer.sendVerificationLink).toHaveBeenCalledWith(
+        expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
           'bruno@example.com',
-          'a-token',
+          'ABCDEF',
         );
         expect(res.body).toMatchObject({ verified: false });
       },
@@ -113,7 +114,7 @@ describe('Empleado', () => {
     it('passes the trimmed name and the trimmed, lowercased email', async () => {
       t.users.findByEmail.mockResolvedValue(null);
       t.employees.create.mockResolvedValue(PENDING_EMPLOYEE);
-      t.employees.issueVerificationToken.mockResolvedValue('a-token');
+      t.employees.issueVerificationCode.mockResolvedValue('ABCDEF');
 
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
@@ -141,7 +142,7 @@ describe('Empleado', () => {
         .set(bearer(SESSION_ID))
         .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
         .expect(409);
-      expect(t.mailer.sendVerificationLink).not.toHaveBeenCalled();
+      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('answers 403 for a session that is not the Dueño', async () => {
@@ -193,27 +194,39 @@ describe('Empleado', () => {
 
       await t.http
         .post('/employees/verification')
-        .send({ token: 'a-token' })
+        .send({ email: 'bruno@example.com', code: 'abcdef' })
         .expect(204);
 
       expect(t.employees.verifyEmail).toHaveBeenCalledWith(
-        'a-token',
+        'bruno@example.com',
+        'ABCDEF',
         new Date('2026-01-01T12:00:00.000Z'),
       );
     });
 
-    it('answers 422 for an unknown, used or expired token', async () => {
+    it('answers 400 for an unknown or already used code', async () => {
       t.employees.verifyEmail.mockRejectedValue(
-        new BusinessRuleError('Unknown, used or expired verification token'),
+        new InvalidCodeError('Unknown or already used verification code'),
       );
 
       await t.http
         .post('/employees/verification')
-        .send({ token: 'stale-token' })
-        .expect(422);
+        .send({ email: 'bruno@example.com', code: 'ABCDEF' })
+        .expect(400);
     });
 
-    it('rejects a missing token with 400', async () => {
+    it('answers 410 for an expired code', async () => {
+      t.employees.verifyEmail.mockRejectedValue(
+        new ExpiredError('Verification code expired'),
+      );
+
+      await t.http
+        .post('/employees/verification')
+        .send({ email: 'bruno@example.com', code: 'ABCDEF' })
+        .expect(410);
+    });
+
+    it('rejects a missing email or code with 400', async () => {
       await t.http.post('/employees/verification').send({}).expect(400);
       expect(t.employees.verifyEmail).not.toHaveBeenCalled();
     });
@@ -226,21 +239,21 @@ describe('Empleado', () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
     });
 
-    it('sends a fresh link, invalidating the previous one, and answers 204', async () => {
-      t.employees.issueVerificationToken.mockResolvedValue('fresh-token');
+    it('sends a fresh code, invalidating the previous one, and answers 204', async () => {
+      t.employees.issueVerificationCode.mockResolvedValue('FRESHC');
 
       await t.http
         .post(`/employees/${PENDING_EMPLOYEE.id}/verification/resend`)
         .set(bearer(SESSION_ID))
         .expect(204);
 
-      expect(t.employees.issueVerificationToken).toHaveBeenCalledWith(
+      expect(t.employees.issueVerificationCode).toHaveBeenCalledWith(
         PENDING_EMPLOYEE.id,
         new Date('2026-01-02T12:00:00.000Z'),
       );
-      expect(t.mailer.sendVerificationLink).toHaveBeenCalledWith(
+      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
         PENDING_EMPLOYEE.email,
-        'fresh-token',
+        'FRESHC',
       );
     });
 
@@ -251,7 +264,7 @@ describe('Empleado', () => {
         .post(`/employees/${ANAS_EMPLOYEE.id}/verification/resend`)
         .set(bearer(SESSION_ID))
         .expect(422);
-      expect(t.mailer.sendVerificationLink).not.toHaveBeenCalled();
+      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('answers 403 for a session that is not the Dueño', async () => {
@@ -445,10 +458,7 @@ describe('Empleado', () => {
     it('answers 404 for an unknown Empleado', async () => {
       t.employees.findById.mockResolvedValue(null);
 
-      await t.http
-        .delete('/employees/999')
-        .set(bearer(SESSION_ID))
-        .expect(404);
+      await t.http.delete('/employees/999').set(bearer(SESSION_ID)).expect(404);
     });
   });
 

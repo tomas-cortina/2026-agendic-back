@@ -52,7 +52,7 @@ export class EmployeesController {
   @Post('employees/verification')
   @HttpCode(HttpStatus.NO_CONTENT)
   async verify(@Body() dto: VerifyEmployeeDto) {
-    await this.verifyEmployeeUseCase.execute(dto.token);
+    await this.verifyEmployeeUseCase.execute(dto.email, dto.code);
   }
 
   @Post('employees/:id/verification/resend')

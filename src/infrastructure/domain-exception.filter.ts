@@ -4,7 +4,9 @@ import {
   BusinessRuleError,
   ConflictError,
   DomainError,
+  ExpiredError,
   ForbiddenError,
+  InvalidCodeError,
   NotFoundError,
   UnauthenticatedError,
 } from '../domain/errors';
@@ -13,7 +15,9 @@ const STATUS_BY_ERROR: [typeof DomainError, number][] = [
   [UnauthenticatedError, 401],
   [ForbiddenError, 403],
   [NotFoundError, 404],
+  [InvalidCodeError, 400],
   [ConflictError, 409],
+  [ExpiredError, 410],
   [BusinessRuleError, 422],
 ];
 

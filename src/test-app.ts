@@ -68,11 +68,12 @@ export async function createTestApp() {
     findByEmail: jest.fn(),
     update: jest.fn(),
     setPendingEmail: jest.fn(),
-    issueVerificationToken: jest.fn(),
+    issueVerificationCode: jest.fn(),
     verifyEmail: jest.fn(),
   };
   const mailer: jest.Mocked<Mailer> = {
     sendVerificationLink: jest.fn(),
+    sendVerificationCode: jest.fn(),
   };
   const sessions: jest.Mocked<SessionsRepository> = {
     create: jest.fn(),
@@ -102,7 +103,7 @@ export async function createTestApp() {
     listActiveByBusiness: jest.fn(),
     update: jest.fn(),
     retire: jest.fn(),
-    issueVerificationToken: jest.fn(),
+    issueVerificationCode: jest.fn(),
     verifyEmail: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {

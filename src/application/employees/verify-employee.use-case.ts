@@ -13,7 +13,7 @@ export class VerifyEmployeeUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  async execute(token: string): Promise<void> {
-    await this.employees.verifyEmail(token, this.clock.now());
+  async execute(email: string, code: string): Promise<void> {
+    await this.employees.verifyEmail(email, code, this.clock.now());
   }
 }

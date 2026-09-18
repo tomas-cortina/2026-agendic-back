@@ -10,7 +10,7 @@ import {
   UsersRepository,
 } from '../../domain/users/users.repository';
 
-/** Verifies the email a token was issued for (applying a pending email change, if any) and signs the Usuario in. */
+/** Verifies the email a code was issued for (applying a pending email change, if any) and signs the Usuario in. */
 @Injectable()
 export class VerifyEmailUseCase {
   constructor(
@@ -19,8 +19,8 @@ export class VerifyEmailUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  async execute(token: string): Promise<Session> {
-    const user = await this.users.verifyEmail(token, this.clock.now());
+  async execute(email: string, code: string): Promise<Session> {
+    const user = await this.users.verifyEmail(email, code, this.clock.now());
     return this.sessions.create({
       userId: user.id,
       expiresAt: sessionExpiresAt(this.clock.now()),

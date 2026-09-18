@@ -2,15 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '../../domain/clock';
 import { NotFoundError } from '../../domain/errors';
 import { MAILER, Mailer } from '../../domain/mailer';
-import {
-  UpdateMeInput,
-  User,
-  verificationTokenExpiresAt,
-} from '../../domain/users/user';
+import { UpdateMeInput, User } from '../../domain/users/user';
 import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
+import { verificationCodeExpiresAt } from '../../domain/verification-code';
 
 @Injectable()
 export class UpdateMeUseCase {
@@ -28,11 +25,11 @@ export class UpdateMeUseCase {
     if (!user) throw new NotFoundError('User not found');
     if (email !== undefined) {
       user = await this.users.setPendingEmail(userId, email);
-      const token = await this.users.issueVerificationToken(
+      const code = await this.users.issueVerificationCode(
         userId,
-        verificationTokenExpiresAt(this.clock.now()),
+        verificationCodeExpiresAt(this.clock.now()),
       );
-      await this.mailer.sendVerificationLink(email, token);
+      await this.mailer.sendVerificationCode(email, code);
     }
     return user;
   }

@@ -24,8 +24,3 @@ export interface UpdateMeInput {
   name?: string;
   email?: string;
 }
-
-const VERIFICATION_TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000;
-
-export const verificationTokenExpiresAt = (issuedAt: Date) =>
-  new Date(issuedAt.getTime() + VERIFICATION_TOKEN_LIFETIME_MS);

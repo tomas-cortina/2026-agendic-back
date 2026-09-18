@@ -1,5 +1,8 @@
-import { IsString } from 'class-validator';
-import { IsName, IsNormalizedEmail } from '../users/users.dto';
+import {
+  IsName,
+  IsNormalizedEmail,
+  IsVerificationCode,
+} from '../users/users.dto';
 
 export class CreateEmployeeDto {
   @IsName()
@@ -10,8 +13,11 @@ export class CreateEmployeeDto {
 }
 
 export class VerifyEmployeeDto {
-  @IsString()
-  token!: string;
+  @IsNormalizedEmail()
+  email!: string;
+
+  @IsVerificationCode()
+  code!: string;
 }
 
 export class UpdateEmployeeDto {

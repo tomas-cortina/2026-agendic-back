@@ -5,8 +5,10 @@ import {
   IsNotEmpty,
   IsString,
   Length,
+  Matches,
   ValidateIf,
 } from 'class-validator';
+import { CODE_PATTERN } from '../verification-code';
 
 const trimmed = (normalize: (value: string) => string = (value) => value) =>
   Transform(({ value }) =>
@@ -23,6 +25,13 @@ export const IsNormalizedEmail = () =>
   applyDecorators(
     trimmed((value) => value.toLowerCase()),
     IsEmail(),
+  );
+
+/** A 6-character verification code, normalized to the case it was generated in. */
+export const IsVerificationCode = () =>
+  applyDecorators(
+    trimmed((value) => value.toUpperCase()),
+    Matches(CODE_PATTERN),
   );
 
 export class SignUpDto {
@@ -51,8 +60,11 @@ export class UpdateMeDto {
 }
 
 export class VerifyEmailDto {
-  @IsString()
-  token!: string;
+  @IsNormalizedEmail()
+  email!: string;
+
+  @IsVerificationCode()
+  code!: string;
 }
 
 export class ResendVerificationDto {

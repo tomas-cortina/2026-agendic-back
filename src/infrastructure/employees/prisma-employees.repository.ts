@@ -1,23 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { createHash, randomBytes } from 'node:crypto';
 import { Employee } from '../../domain/employees/employee';
 import {
   CreateEmployeeData,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
 import {
-  BusinessRuleError,
   ConflictError,
   DatabaseOperationError,
+  ExpiredError,
+  InvalidCodeError,
   NotFoundError,
 } from '../../domain/errors';
 import { Employee as EmployeeRow, Prisma } from '../../generated/prisma/client';
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
-
-/** Stores only a hash of each verification token, so a leaked table can't be used to verify an email. */
-const hash = (token: string) =>
-  createHash('sha256').update(token).digest('base64url');
+import {
+  generateVerificationCode,
+  hashVerificationCode,
+} from '../verification-code';
 
 @Injectable()
 export class PrismaEmployeesRepository implements EmployeesRepository {
@@ -77,40 +77,38 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
       .catch(translateError);
   }
 
-  async issueVerificationToken(employeeId: number, expiresAt: Date) {
-    const token = randomBytes(32).toString('base64url');
+  async issueVerificationCode(employeeId: number, expiresAt: Date) {
+    const code = generateVerificationCode();
     await this.prisma.employee
       .update({
         where: { id: employeeId },
         data: {
-          verificationTokenHash: hash(token),
-          verificationTokenExpiresAt: expiresAt,
+          verificationCodeHash: hashVerificationCode(code),
+          verificationCodeExpiresAt: expiresAt,
         },
       })
       .catch(translateError);
-    return token;
+    return code;
   }
 
-  async verifyEmail(token: string, now: Date) {
+  async verifyEmail(email: string, code: string, now: Date) {
     const row = await this.prisma.employee
-      .findUnique({ where: { verificationTokenHash: hash(token) } })
+      .findFirst({
+        where: { email, verificationCodeHash: hashVerificationCode(code) },
+      })
       .catch(translateError);
-    if (
-      !row ||
-      !row.verificationTokenExpiresAt ||
-      row.verificationTokenExpiresAt <= now
-    )
-      throw new BusinessRuleError(
-        'Unknown, used or expired verification token',
-      );
+    if (!row || !row.verificationCodeExpiresAt)
+      throw new InvalidCodeError('Unknown or already used verification code');
+    if (row.verificationCodeExpiresAt <= now)
+      throw new ExpiredError('Verification code expired');
     return toEmployee(
       await this.prisma.employee
         .update({
           where: { id: row.id },
           data: {
             emailVerifiedAt: now,
-            verificationTokenHash: null,
-            verificationTokenExpiresAt: null,
+            verificationCodeHash: null,
+            verificationCodeExpiresAt: null,
           },
         })
         .catch(translateError),

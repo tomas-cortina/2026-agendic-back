@@ -1,19 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '../../domain/clock';
 import { MAILER, Mailer } from '../../domain/mailer';
-import {
-  PASSWORD_HASHER,
-  PasswordHasher,
-} from '../../domain/users/password-hasher';
-import {
-  SignUpInput,
-  User,
-  verificationTokenExpiresAt,
-} from '../../domain/users/user';
+import { SignUpInput, User } from '../../domain/users/user';
 import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
+import {
+  PASSWORD_HASHER,
+  PasswordHasher,
+} from '../../domain/users/password-hasher';
+import { verificationCodeExpiresAt } from '../../domain/verification-code';
 
 @Injectable()
 export class SignUpUseCase {
@@ -27,11 +24,11 @@ export class SignUpUseCase {
   async execute({ name, email, password }: SignUpInput): Promise<User> {
     const passwordHash = await this.passwordHasher.hash(password);
     const user = await this.users.create({ name, email, passwordHash });
-    const token = await this.users.issueVerificationToken(
+    const code = await this.users.issueVerificationCode(
       user.id,
-      verificationTokenExpiresAt(this.clock.now()),
+      verificationCodeExpiresAt(this.clock.now()),
     );
-    await this.mailer.sendVerificationLink(user.email, token);
+    await this.mailer.sendVerificationCode(user.email, code);
     return user;
   }
 }

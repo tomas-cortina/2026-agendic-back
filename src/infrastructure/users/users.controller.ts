@@ -41,7 +41,9 @@ export class UsersController {
 
   @Post('verification')
   async verify(@Body() dto: VerifyEmailDto) {
-    return presentSession(await this.verifyEmailUseCase.execute(dto.token));
+    return presentSession(
+      await this.verifyEmailUseCase.execute(dto.email, dto.code),
+    );
   }
 
   @Post('verification/resend')

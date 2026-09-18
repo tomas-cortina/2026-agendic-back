@@ -1,7 +1,8 @@
 import {
-  BusinessRuleError,
   ConflictError,
   DatabaseOperationError,
+  ExpiredError,
+  InvalidCodeError,
 } from '../../domain/errors';
 import {
   ANA,
@@ -25,10 +26,10 @@ describe('Usuario', () => {
     beforeEach(() => {
       t.passwordHasher.hash.mockResolvedValue('hashed-password');
       t.users.create.mockResolvedValue(UNVERIFIED_ANA);
-      t.users.issueVerificationToken.mockResolvedValue('a-token');
+      t.users.issueVerificationCode.mockResolvedValue('ABCDEF');
     });
 
-    it('creates the Usuario unverified and sends a verification link, without a Sesión', async () => {
+    it('creates the Usuario unverified and sends a verification code, without a Sesión', async () => {
       const res = await t.http.post('/users').send(VALID_SIGN_UP).expect(201);
 
       expect(res.body).toEqual({
@@ -37,13 +38,13 @@ describe('Usuario', () => {
         email: UNVERIFIED_ANA.email,
         role: UNVERIFIED_ANA.role,
       });
-      expect(t.users.issueVerificationToken).toHaveBeenCalledWith(
+      expect(t.users.issueVerificationCode).toHaveBeenCalledWith(
         UNVERIFIED_ANA.id,
-        new Date('2026-01-02T12:00:00.000Z'),
+        new Date('2026-01-01T12:15:00.000Z'),
       );
-      expect(t.mailer.sendVerificationLink).toHaveBeenCalledWith(
+      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
         UNVERIFIED_ANA.email,
-        'a-token',
+        'ABCDEF',
       );
     });
 
@@ -73,7 +74,7 @@ describe('Usuario', () => {
       );
 
       await t.http.post('/users').send(VALID_SIGN_UP).expect(409);
-      expect(t.mailer.sendVerificationLink).not.toHaveBeenCalled();
+      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('answers a database failure with a generic 500', async () => {
@@ -116,7 +117,7 @@ describe('Usuario', () => {
           .expect(400);
 
         expect(t.users.create).not.toHaveBeenCalled();
-        expect(t.mailer.sendVerificationLink).not.toHaveBeenCalled();
+        expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
       },
     );
   });
@@ -131,11 +132,12 @@ describe('Usuario', () => {
 
       const res = await t.http
         .post('/users/verification')
-        .send({ token: 'a-token' })
+        .send({ email: 'ana@example.com', code: 'abcdef' })
         .expect(201);
 
       expect(t.users.verifyEmail).toHaveBeenCalledWith(
-        'a-token',
+        'ana@example.com',
+        'ABCDEF',
         new Date('2026-01-01T12:00:00.000Z'),
       );
       expect(res.body).toEqual({
@@ -144,15 +146,27 @@ describe('Usuario', () => {
       });
     });
 
-    it('answers 422 for an unknown, used or expired token', async () => {
+    it('answers 400 for an unknown or already used code', async () => {
       t.users.verifyEmail.mockRejectedValue(
-        new BusinessRuleError('Unknown, used or expired verification token'),
+        new InvalidCodeError('Unknown or already used verification code'),
       );
 
       await t.http
         .post('/users/verification')
-        .send({ token: 'stale-token' })
-        .expect(422);
+        .send({ email: 'ana@example.com', code: 'ABCDEF' })
+        .expect(400);
+      expect(t.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 410 for an expired code', async () => {
+      t.users.verifyEmail.mockRejectedValue(
+        new ExpiredError('Verification code expired'),
+      );
+
+      await t.http
+        .post('/users/verification')
+        .send({ email: 'ana@example.com', code: 'ABCDEF' })
+        .expect(410);
       expect(t.sessions.create).not.toHaveBeenCalled();
     });
 
@@ -163,20 +177,32 @@ describe('Usuario', () => {
 
       await t.http
         .post('/users/verification')
-        .send({ token: 'a-token' })
+        .send({ email: 'ana@example.com', code: 'ABCDEF' })
         .expect(409);
     });
 
-    it('rejects a missing token with 400', async () => {
+    it('rejects a missing email or code with 400', async () => {
       await t.http.post('/users/verification').send({}).expect(400);
+      expect(t.users.verifyEmail).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['too short', 'ABCDE'],
+      ['too long', 'ABCDEFG'],
+      ['with characters outside the alphabet', 'ABCD1O'],
+    ])('rejects a code %s with 400', async (_, code) => {
+      await t.http
+        .post('/users/verification')
+        .send({ email: 'ana@example.com', code })
+        .expect(400);
       expect(t.users.verifyEmail).not.toHaveBeenCalled();
     });
   });
 
   describe('POST /users/verification/resend', () => {
-    it('sends a fresh link and always answers 204', async () => {
+    it('sends a fresh code and always answers 204', async () => {
       t.users.findByEmail.mockResolvedValue({ ...ANA, emailVerifiedAt: null });
-      t.users.issueVerificationToken.mockResolvedValue('fresh-token');
+      t.users.issueVerificationCode.mockResolvedValue('FRESHC');
 
       await t.http
         .post('/users/verification/resend')
@@ -184,13 +210,13 @@ describe('Usuario', () => {
         .expect(204);
 
       expect(t.users.findByEmail).toHaveBeenCalledWith('ana@example.com');
-      expect(t.users.issueVerificationToken).toHaveBeenCalledWith(
+      expect(t.users.issueVerificationCode).toHaveBeenCalledWith(
         ANA.id,
-        new Date('2026-01-02T12:00:00.000Z'),
+        new Date('2026-01-01T12:15:00.000Z'),
       );
-      expect(t.mailer.sendVerificationLink).toHaveBeenCalledWith(
+      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
         ANA.email,
-        'fresh-token',
+        'FRESHC',
       );
     });
 
@@ -208,7 +234,7 @@ describe('Usuario', () => {
         .send({ email: 'ana@example.com' })
         .expect(204);
 
-      expect(t.mailer.sendVerificationLink).not.toHaveBeenCalled();
+      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('rejects a malformed email with 400', async () => {
@@ -282,12 +308,12 @@ describe('Usuario', () => {
       expect(t.users.setPendingEmail).not.toHaveBeenCalled();
     });
 
-    it('stores a new email as pending, sends a link, and keeps the current email working', async () => {
+    it('stores a new email as pending, sends a code, and keeps the current email working', async () => {
       t.users.setPendingEmail.mockResolvedValue({
         ...ANA,
         pendingEmail: 'anamaria@example.com',
       });
-      t.users.issueVerificationToken.mockResolvedValue('a-token');
+      t.users.issueVerificationCode.mockResolvedValue('ABCDEF');
 
       const res = await t.http
         .patch('/users/me')
@@ -299,13 +325,13 @@ describe('Usuario', () => {
         ANA.id,
         'anamaria@example.com',
       );
-      expect(t.users.issueVerificationToken).toHaveBeenCalledWith(
+      expect(t.users.issueVerificationCode).toHaveBeenCalledWith(
         ANA.id,
-        new Date('2026-01-02T12:00:00.000Z'),
+        new Date('2026-01-01T12:15:00.000Z'),
       );
-      expect(t.mailer.sendVerificationLink).toHaveBeenCalledWith(
+      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
         'anamaria@example.com',
-        'a-token',
+        'ABCDEF',
       );
       expect(res.body).toEqual({
         id: 1,
@@ -327,7 +353,7 @@ describe('Usuario', () => {
         .set(bearer(SESSION_ID))
         .send({ email: 'bruno@example.com' })
         .expect(409);
-      expect(t.mailer.sendVerificationLink).not.toHaveBeenCalled();
+      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it.each([

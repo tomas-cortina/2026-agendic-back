@@ -10,7 +10,7 @@ import {
 } from '../../domain/employees/employees.repository';
 import { BusinessRuleError } from '../../domain/errors';
 import { MAILER, Mailer } from '../../domain/mailer';
-import { verificationTokenExpiresAt } from '../../domain/users/user';
+import { invitationCodeExpiresAt } from '../../domain/verification-code';
 import { assertEmployeeOwner } from './assert-employee-owner';
 
 @Injectable()
@@ -33,10 +33,10 @@ export class ResendEmployeeVerificationUseCase {
     );
     if (employee.emailVerifiedAt)
       throw new BusinessRuleError('Employee already verified');
-    const token = await this.employees.issueVerificationToken(
+    const code = await this.employees.issueVerificationCode(
       employee.id,
-      verificationTokenExpiresAt(this.clock.now()),
+      invitationCodeExpiresAt(this.clock.now()),
     );
-    await this.mailer.sendVerificationLink(employee.email, token);
+    await this.mailer.sendVerificationCode(employee.email, code);
   }
 }

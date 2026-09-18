@@ -1,17 +1,15 @@
-import { createHash } from 'node:crypto';
 import { Employee } from '../../../domain/employees/employee';
 import {
-  BusinessRuleError,
   ConflictError,
   DatabaseOperationError,
+  ExpiredError,
+  InvalidCodeError,
   NotFoundError,
 } from '../../../domain/errors';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
+import { CODE_PATTERN, hashVerificationCode } from '../../verification-code';
 import { PrismaEmployeesRepository } from '../prisma-employees.repository';
-
-const sha256 = (value: string) =>
-  createHash('sha256').update(value).digest('base64url');
 
 const EMPLOYEE: Employee = {
   id: 1,
@@ -41,6 +39,7 @@ describe('PrismaEmployeesRepository', () => {
       findMany: jest.fn(),
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
     },
     $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
@@ -156,69 +155,77 @@ describe('PrismaEmployeesRepository', () => {
     });
   });
 
-  describe('issueVerificationToken', () => {
-    it('stores only the SHA-256 of a random token and returns the raw token', async () => {
+  describe('issueVerificationCode', () => {
+    it('stores only the SHA-256 of a 6-character code and returns the raw code', async () => {
       prisma.employee.update.mockResolvedValue(EMPLOYEE);
 
-      const token = await repository.issueVerificationToken(1, EXPIRES_AT);
+      const code = await repository.issueVerificationCode(1, EXPIRES_AT);
 
-      expect(typeof token).toBe('string');
+      expect(code).toMatch(CODE_PATTERN);
       expect(prisma.employee.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: {
-          verificationTokenHash: sha256(token),
-          verificationTokenExpiresAt: EXPIRES_AT,
+          verificationCodeHash: hashVerificationCode(code),
+          verificationCodeExpiresAt: EXPIRES_AT,
         },
       });
     });
   });
 
   describe('verifyEmail', () => {
-    it('marks the Employee verified by the hash of the token, clearing it', async () => {
-      prisma.employee.findUnique.mockResolvedValue({
+    it('marks the Employee verified by the email and the hash of the code, clearing it', async () => {
+      prisma.employee.findFirst.mockResolvedValue({
         ...EMPLOYEE,
         emailVerifiedAt: null,
-        verificationTokenHash: sha256('a-token'),
-        verificationTokenExpiresAt: EXPIRES_AT,
+        verificationCodeHash: hashVerificationCode('ABCDEF'),
+        verificationCodeExpiresAt: EXPIRES_AT,
       });
       prisma.employee.update.mockResolvedValue({
         ...EMPLOYEE,
         emailVerifiedAt: NOW,
       });
 
-      await expect(repository.verifyEmail('a-token', NOW)).resolves.toEqual({
+      await expect(
+        repository.verifyEmail('ana@example.com', 'ABCDEF', NOW),
+      ).resolves.toEqual({
         ...EMPLOYEE,
         emailVerifiedAt: NOW,
       });
-      expect(prisma.employee.findUnique).toHaveBeenCalledWith({
-        where: { verificationTokenHash: sha256('a-token') },
+      expect(prisma.employee.findFirst).toHaveBeenCalledWith({
+        where: {
+          email: 'ana@example.com',
+          verificationCodeHash: hashVerificationCode('ABCDEF'),
+        },
       });
       expect(prisma.employee.update).toHaveBeenCalledWith({
         where: { id: EMPLOYEE.id },
         data: {
           emailVerifiedAt: NOW,
-          verificationTokenHash: null,
-          verificationTokenExpiresAt: null,
+          verificationCodeHash: null,
+          verificationCodeExpiresAt: null,
         },
       });
     });
 
-    it.each([
-      ['an unknown token', null],
-      [
-        'an expired token',
-        {
-          ...EMPLOYEE,
-          verificationTokenHash: sha256('a-token'),
-          verificationTokenExpiresAt: NOW,
-        },
-      ],
-    ])('throws BusinessRuleError for %s', async (_, row) => {
-      prisma.employee.findUnique.mockResolvedValue(row);
+    it('throws InvalidCodeError for an unknown code', async () => {
+      prisma.employee.findFirst.mockResolvedValue(null);
 
       await expect(
-        repository.verifyEmail('a-token', NOW),
-      ).rejects.toBeInstanceOf(BusinessRuleError);
+        repository.verifyEmail('ana@example.com', 'ABCDEF', NOW),
+      ).rejects.toBeInstanceOf(InvalidCodeError);
+      expect(prisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it('throws ExpiredError for an expired code', async () => {
+      prisma.employee.findFirst.mockResolvedValue({
+        ...EMPLOYEE,
+        verificationCodeHash: hashVerificationCode('ABCDEF'),
+        verificationCodeExpiresAt: NOW,
+      });
+
+      await expect(
+        repository.verifyEmail('ana@example.com', 'ABCDEF', NOW),
+      ).rejects.toBeInstanceOf(ExpiredError);
       expect(prisma.employee.update).not.toHaveBeenCalled();
     });
   });

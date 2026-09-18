@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { createHash, randomBytes } from 'node:crypto';
 import {
-  BusinessRuleError,
   ConflictError,
   DatabaseOperationError,
+  ExpiredError,
+  InvalidCodeError,
   NotFoundError,
 } from '../../domain/errors';
 import { Role, User } from '../../domain/users/user';
 import { UsersRepository } from '../../domain/users/users.repository';
 import { Prisma, User as UserRow } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
-
-/** Stores only a hash of each verification token, so a leaked table can't be used to verify an email. */
-const hash = (token: string) =>
-  createHash('sha256').update(token).digest('base64url');
+import {
+  generateVerificationCode,
+  hashVerificationCode,
+} from '../verification-code';
 
 @Injectable()
 export class PrismaUsersRepository implements UsersRepository {
@@ -62,32 +62,33 @@ export class PrismaUsersRepository implements UsersRepository {
     );
   }
 
-  async issueVerificationToken(userId: number, expiresAt: Date) {
-    const token = randomBytes(32).toString('base64url');
+  async issueVerificationCode(userId: number, expiresAt: Date) {
+    const code = generateVerificationCode();
     await this.prisma.user
       .update({
         where: { id: userId },
         data: {
-          verificationTokenHash: hash(token),
-          verificationTokenExpiresAt: expiresAt,
+          verificationCodeHash: hashVerificationCode(code),
+          verificationCodeExpiresAt: expiresAt,
         },
       })
       .catch(translateError);
-    return token;
+    return code;
   }
 
-  async verifyEmail(token: string, now: Date) {
+  async verifyEmail(email: string, code: string, now: Date) {
     const row = await this.prisma.user
-      .findUnique({ where: { verificationTokenHash: hash(token) } })
+      .findFirst({
+        where: {
+          OR: [{ email }, { pendingEmail: email }],
+          verificationCodeHash: hashVerificationCode(code),
+        },
+      })
       .catch(translateError);
-    if (
-      !row ||
-      !row.verificationTokenExpiresAt ||
-      row.verificationTokenExpiresAt <= now
-    )
-      throw new BusinessRuleError(
-        'Unknown, used or expired verification token',
-      );
+    if (!row || !row.verificationCodeExpiresAt)
+      throw new InvalidCodeError('Unknown or already used verification code');
+    if (row.verificationCodeExpiresAt <= now)
+      throw new ExpiredError('Verification code expired');
     return toUser(
       await this.prisma.user
         .update({
@@ -96,8 +97,8 @@ export class PrismaUsersRepository implements UsersRepository {
             email: row.pendingEmail ?? row.email,
             pendingEmail: null,
             emailVerifiedAt: now,
-            verificationTokenHash: null,
-            verificationTokenExpiresAt: null,
+            verificationCodeHash: null,
+            verificationCodeExpiresAt: null,
           },
         })
         .catch(translateError),

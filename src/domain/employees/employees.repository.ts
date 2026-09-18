@@ -25,11 +25,11 @@ export interface EmployeesRepository {
     id: number,
     retiredAt: Date,
   ): Promise<{ employee: Employee; cancelledBookings: number }>;
-  /** Generates a single-use token expiring at expiresAt, replacing any previous one. Returns the raw token; only its hash is stored. */
-  issueVerificationToken(employeeId: number, expiresAt: Date): Promise<string>;
+  /** Generates a single-use 6-character code expiring at expiresAt, replacing any previous one. Returns the raw code; only its hash is stored. */
+  issueVerificationCode(employeeId: number, expiresAt: Date): Promise<string>;
   /**
-   * Consumes a single-use token: verifies the Employee's email.
-   * Throws BusinessRuleError for an unknown, already used or expired token.
+   * Consumes a single-use code sent to the Employee's email: verifies it.
+   * Throws BusinessRuleError for an unknown, already used or expired code.
    */
-  verifyEmail(token: string, now: Date): Promise<Employee>;
+  verifyEmail(email: string, code: string, now: Date): Promise<Employee>;
 }
