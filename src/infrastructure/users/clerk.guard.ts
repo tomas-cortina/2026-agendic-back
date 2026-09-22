@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ResolveCurrentUserUseCase } from '../../application/users/resolve-current-user.use-case';
+import { extractBearerToken } from '../bearer-token';
 
 type AuthenticatedRequest = Request & { userId: number };
 
@@ -16,9 +17,7 @@ export class ClerkGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const token = /^Bearer (\S+)$/i.exec(
-      request.headers.authorization ?? '',
-    )?.[1];
+    const token = extractBearerToken(request);
     const user = await this.resolveCurrentUser.execute(token);
     request.userId = user.id;
     return true;

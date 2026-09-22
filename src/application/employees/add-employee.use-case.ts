@@ -3,60 +3,44 @@ import {
   BUSINESSES_REPOSITORY,
   BusinessesRepository,
 } from '../../domain/businesses/businesses.repository';
-import { CLOCK, Clock } from '../../domain/clock';
-import { Employee } from '../../domain/employees/employee';
-import {
-  EMPLOYEES_REPOSITORY,
-  EmployeesRepository,
-} from '../../domain/employees/employees.repository';
-import { MAILER, Mailer } from '../../domain/mailer';
+import { NotFoundError } from '../../domain/errors';
+import { CLERK_AUTH, ClerkAuth } from '../../domain/users/clerk-auth';
 import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
-import { invitationCodeExpiresAt } from '../../domain/verification-code';
 import { assertOwner } from '../businesses/assert-owner';
 
 export interface AddEmployeeInput {
-  name: string;
   email: string;
 }
 
-/** Trusts an email at once when it's an already registered Usuario's (Clerk keeps those verified); otherwise sends a verification code. */
+/**
+ * Invites the email to the Business's Clerk Organization; the local Employee row is created
+ * just-in-time, on their first authenticated request (see ResolveCurrentEmployeeUseCase).
+ */
 @Injectable()
 export class AddEmployeeUseCase {
   constructor(
     @Inject(BUSINESSES_REPOSITORY)
     private readonly businesses: BusinessesRepository,
-    @Inject(EMPLOYEES_REPOSITORY)
-    private readonly employees: EmployeesRepository,
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
-    @Inject(MAILER) private readonly mailer: Mailer,
-    @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(CLERK_AUTH) private readonly clerkAuth: ClerkAuth,
   ) {}
 
   async execute(
     userId: number,
     businessId: number,
     input: AddEmployeeInput,
-  ): Promise<Employee> {
-    assertOwner(await this.businesses.findById(businessId), userId);
-    const now = this.clock.now();
-    const trustedUser = await this.users.findByEmail(input.email);
-    const emailVerifiedAt = trustedUser ? now : null;
-    const employee = await this.employees.create({
-      businessId,
-      name: input.name,
-      email: input.email,
-      emailVerifiedAt,
-    });
-    if (!emailVerifiedAt) {
-      const code = await this.employees.issueVerificationCode(
-        employee.id,
-        invitationCodeExpiresAt(now),
-      );
-      await this.mailer.sendVerificationCode(employee.email, code);
-    }
-    return employee;
+  ): Promise<void> {
+    const business = await this.businesses.findById(businessId);
+    assertOwner(business, userId);
+    const owner = await this.users.findById(userId);
+    if (!owner) throw new NotFoundError('User not found');
+    await this.clerkAuth.inviteToOrganization(
+      business.clerkOrgId,
+      input.email,
+      owner.clerkId,
+    );
   }
 }

@@ -14,7 +14,7 @@ export interface CreateBusinessData {
     'name' | 'description' | 'category' | 'durationMinutes' | 'price'
   >;
   /** The Dueño, in charge of that first Servicio. */
-  employee: Pick<Employee, 'name' | 'email' | 'emailVerifiedAt'>;
+  employee: Pick<Employee, 'clerkId' | 'name' | 'email' | 'emailVerifiedAt'>;
 }
 
 export interface CreatedBusiness {
@@ -28,6 +28,7 @@ export interface BusinessesRepository {
   /** Generates every id. Atomic: a failure in any part creates nothing. */
   create(data: CreateBusinessData): Promise<CreatedBusiness>;
   findById(id: number): Promise<Business | null>;
+  findByClerkOrgId(clerkOrgId: string): Promise<Business | null>;
   list(): Promise<Business[]>;
   /** Leaves undefined fields unchanged. */
   update(

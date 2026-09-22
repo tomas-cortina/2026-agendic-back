@@ -86,6 +86,7 @@ model Service {
 model Employee {
   id                         Int       @id @default(autoincrement())
   businessId                 Int
+  clerkId                    String    @unique // Clerk is the identity's system of record; no local credentials
   name                       String
   email                      String
   emailVerifiedAt            DateTime? @db.Timestamptz(3) // null while the verification code is still pending

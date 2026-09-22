@@ -12,12 +12,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AddEmployeeUseCase } from '../../application/employees/add-employee.use-case';
+import { GetMeEmployeeUseCase } from '../../application/employees/get-me-employee.use-case';
 import { ListEmployeesByBusinessUseCase } from '../../application/employees/list-employees-by-business.use-case';
 import { ResendEmployeeVerificationUseCase } from '../../application/employees/resend-employee-verification.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { UpdateEmployeeUseCase } from '../../application/employees/update-employee.use-case';
 import { VerifyEmployeeUseCase } from '../../application/employees/verify-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
+import { CurrentEmployee, EmployeeClerkGuard } from './employee-clerk.guard';
 import { presentEmployee } from './employee.presenter';
 import {
   CreateEmployeeDto,
@@ -29,6 +31,7 @@ import {
 export class EmployeesController {
   constructor(
     private readonly addEmployeeUseCase: AddEmployeeUseCase,
+    private readonly getMeEmployeeUseCase: GetMeEmployeeUseCase,
     private readonly verifyEmployeeUseCase: VerifyEmployeeUseCase,
     private readonly resendEmployeeVerificationUseCase: ResendEmployeeVerificationUseCase,
     private readonly updateEmployeeUseCase: UpdateEmployeeUseCase,
@@ -37,15 +40,20 @@ export class EmployeesController {
   ) {}
 
   @Post('businesses/:id/employees')
+  @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(ClerkGuard)
   async create(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) businessId: number,
     @Body() dto: CreateEmployeeDto,
   ) {
-    return presentEmployee(
-      await this.addEmployeeUseCase.execute(userId, businessId, dto),
-    );
+    await this.addEmployeeUseCase.execute(userId, businessId, dto);
+  }
+
+  @Get('employees/me')
+  @UseGuards(EmployeeClerkGuard)
+  async getMe(@CurrentEmployee() employeeId: number) {
+    return presentEmployee(await this.getMeEmployeeUseCase.execute(employeeId));
   }
 
   @Post('employees/verification')

@@ -15,7 +15,7 @@ export class ResolveCurrentUserUseCase {
   ) {}
 
   async execute(token: string | undefined): Promise<User> {
-    const clerkId = await this.clerkAuth.verifyToken(token);
+    const { clerkId } = await this.clerkAuth.verifyToken(token);
     const existing = await this.users.findByClerkId(clerkId);
     if (existing) return existing;
     const profile = await this.clerkAuth.getProfile(clerkId);

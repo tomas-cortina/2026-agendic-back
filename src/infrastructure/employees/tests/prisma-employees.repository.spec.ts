@@ -14,6 +14,7 @@ import { PrismaEmployeesRepository } from '../prisma-employees.repository';
 const EMPLOYEE: Employee = {
   id: 1,
   businessId: 1,
+  clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
   emailVerifiedAt: new Date('2026-01-01T12:00:00.000Z'),
@@ -77,6 +78,7 @@ describe('PrismaEmployeesRepository', () => {
     });
     const data = {
       businessId: 1,
+      clerkId: 'user_clerk_ana',
       name: 'Ana Pérez',
       email: 'ana@example.com',
       emailVerifiedAt: null,
@@ -102,6 +104,17 @@ describe('PrismaEmployeesRepository', () => {
     prisma.employee.findUnique.mockResolvedValue(null);
 
     await expect(repository.findById(999)).resolves.toBeNull();
+  });
+
+  it('finds an Employee by Clerk id', async () => {
+    prisma.employee.findUnique.mockResolvedValue(EMPLOYEE);
+
+    await expect(repository.findByClerkId('user_clerk_ana')).resolves.toEqual(
+      EMPLOYEE,
+    );
+    expect(prisma.employee.findUnique).toHaveBeenCalledWith({
+      where: { clerkId: 'user_clerk_ana' },
+    });
   });
 
   it('lists a Business Employees not dados de baja', async () => {
@@ -235,6 +248,7 @@ describe('PrismaEmployeesRepository', () => {
       create: () =>
         repository.create({
           businessId: 1,
+          clerkId: 'user_clerk_ana',
           name: 'Ana',
           email: 'ana@example.com',
           emailVerifiedAt: null,

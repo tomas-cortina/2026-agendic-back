@@ -35,6 +35,7 @@ const BRANCH_ROW = {
 const EMPLOYEE_ROW = {
   id: 20,
   businessId: ANAS_BUSINESS.id,
+  clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
   emailVerifiedAt: new Date('2026-01-01T12:00:00.000Z'),
@@ -74,6 +75,7 @@ const CREATE_DATA = {
     price: 20,
   },
   employee: {
+    clerkId: 'user_clerk_ana',
     name: 'Ana Pérez',
     email: 'ana@example.com',
     emailVerifiedAt: EMPLOYEE_ROW.emailVerifiedAt,
@@ -127,6 +129,7 @@ describe('PrismaBusinessesRepository', () => {
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,
       businessId: ANAS_BUSINESS.id,
+      clerkId: 'user_clerk_ana',
       name: 'Ana Pérez',
       email: 'ana@example.com',
       emailVerifiedAt: EMPLOYEE_ROW.emailVerifiedAt,
@@ -208,6 +211,17 @@ describe('PrismaBusinessesRepository', () => {
     prisma.business.findMany.mockResolvedValue([ANAS_BUSINESS]);
 
     await expect(repository.list()).resolves.toEqual([ANAS_BUSINESS]);
+  });
+
+  it('finds a Business by its Clerk Organization id', async () => {
+    prisma.business.findUnique.mockResolvedValue(ANAS_BUSINESS);
+
+    await expect(
+      repository.findByClerkOrgId(ANAS_BUSINESS.clerkOrgId),
+    ).resolves.toEqual(ANAS_BUSINESS);
+    expect(prisma.business.findUnique).toHaveBeenCalledWith({
+      where: { clerkOrgId: ANAS_BUSINESS.clerkOrgId },
+    });
   });
 
   describe('translates Prisma errors, keeping the original as cause', () => {

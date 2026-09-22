@@ -67,6 +67,13 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
     return row && toBusiness(row);
   }
 
+  async findByClerkOrgId(clerkOrgId: string) {
+    const row = await this.prisma.business
+      .findUnique({ where: { clerkOrgId } })
+      .catch(translateError);
+    return row && toBusiness(row);
+  }
+
   async list() {
     return (await this.prisma.business.findMany().catch(translateError)).map(
       toBusiness,

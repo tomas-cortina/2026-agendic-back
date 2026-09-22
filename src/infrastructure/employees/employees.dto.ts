@@ -5,9 +5,6 @@ import {
 } from '../users/users.dto';
 
 export class CreateEmployeeDto {
-  @IsName()
-  name!: string;
-
   @IsNormalizedEmail()
   email!: string;
 }

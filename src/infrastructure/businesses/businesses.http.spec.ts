@@ -99,6 +99,7 @@ describe('Negocio', () => {
         branch: BRANCH_PART,
         service: SERVICE_PART,
         employee: {
+          clerkId: ANA.clerkId,
           name: ANA.name,
           email: ANA.email,
           emailVerifiedAt: t.clock.now(),

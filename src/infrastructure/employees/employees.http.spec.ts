@@ -1,17 +1,18 @@
 import {
-  ConflictError,
   DatabaseOperationError,
   ExpiredError,
   InvalidCodeError,
+  UnauthenticatedError,
 } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
+  ANA,
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
   bearer,
-  BRUNO,
   createTestApp,
   OTHER_CLERK_TOKEN,
+  scriptEmployeeSession,
   scriptOtherSession,
   scriptSession,
   CLERK_TOKEN,
@@ -21,6 +22,7 @@ import {
 const PENDING_EMPLOYEE = {
   id: 2,
   businessId: ANAS_BUSINESS.id,
+  clerkId: 'user_clerk_bruno_the_employee',
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
   emailVerifiedAt: null,
@@ -37,97 +39,36 @@ describe('Empleado', () => {
     beforeEach(() => {
       scriptSession(t);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.users.findById.mockResolvedValue(ANA);
     });
 
-    it("verifies the Empleado at once and sends no mail when the email is an already verified Usuario's", async () => {
-      t.users.findByEmail.mockResolvedValue(BRUNO);
-      t.employees.create.mockResolvedValue({
-        ...PENDING_EMPLOYEE,
-        emailVerifiedAt: t.clock.now(),
-      });
-
-      const res = await t.http
+    it("invites the email to the Business's Clerk Organization and answers 202", async () => {
+      await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
         .set(bearer(CLERK_TOKEN))
-        .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
-        .expect(201);
+        .send({ email: 'bruno@example.com' })
+        .expect(202);
 
-      expect(t.employees.create).toHaveBeenCalledWith({
-        businessId: ANAS_BUSINESS.id,
-        name: 'Bruno Díaz',
-        email: 'bruno@example.com',
-        emailVerifiedAt: t.clock.now(),
-      });
-      expect(res.body).toEqual({
-        id: PENDING_EMPLOYEE.id,
-        name: 'Bruno Díaz',
-        email: 'bruno@example.com',
-        verified: true,
-      });
-      expect(t.employees.issueVerificationCode).not.toHaveBeenCalled();
-      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
-    });
-
-    it('leaves the Empleado pending and sends a verification code when no Usuario has that email', async () => {
-      t.users.findByEmail.mockResolvedValue(null);
-      t.employees.create.mockResolvedValue(PENDING_EMPLOYEE);
-      t.employees.issueVerificationCode.mockResolvedValue('ABCDEF');
-
-      const res = await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
-        .expect(201);
-
-      expect(t.employees.create).toHaveBeenCalledWith({
-        businessId: ANAS_BUSINESS.id,
-        name: 'Bruno Díaz',
-        email: 'bruno@example.com',
-        emailVerifiedAt: null,
-      });
-      expect(t.employees.issueVerificationCode).toHaveBeenCalledWith(
-        PENDING_EMPLOYEE.id,
-        new Date('2026-01-02T12:00:00.000Z'),
-      );
-      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
+      expect(t.clerkAuth.inviteToOrganization).toHaveBeenCalledWith(
+        ANAS_BUSINESS.clerkOrgId,
         'bruno@example.com',
-        'ABCDEF',
+        ANA.clerkId,
       );
-      expect(res.body).toMatchObject({ verified: false });
+      expect(t.employees.create).not.toHaveBeenCalled();
     });
 
-    it('passes the trimmed name and the trimmed, lowercased email', async () => {
-      t.users.findByEmail.mockResolvedValue(null);
-      t.employees.create.mockResolvedValue(PENDING_EMPLOYEE);
-      t.employees.issueVerificationCode.mockResolvedValue('ABCDEF');
-
+    it('passes the trimmed, lowercased email', async () => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
         .set(bearer(CLERK_TOKEN))
-        .send({ name: '  Bruno Díaz  ', email: '  Bruno@Example.COM ' })
-        .expect(201);
+        .send({ email: '  Bruno@Example.COM ' })
+        .expect(202);
 
-      expect(t.users.findByEmail).toHaveBeenCalledWith('bruno@example.com');
-      expect(t.employees.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Bruno Díaz',
-          email: 'bruno@example.com',
-        }),
+      expect(t.clerkAuth.inviteToOrganization).toHaveBeenCalledWith(
+        ANAS_BUSINESS.clerkOrgId,
+        'bruno@example.com',
+        ANA.clerkId,
       );
-    });
-
-    it('answers 409 when the email is already used by an Employee of the same Business', async () => {
-      t.users.findByEmail.mockResolvedValue(null);
-      t.employees.create.mockRejectedValue(
-        new ConflictError('Employee email already in use'),
-      );
-
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
-        .expect(409);
-      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('answers 403 for a session that is not the Dueño', async () => {
@@ -136,9 +77,9 @@ describe('Empleado', () => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
         .set(bearer(OTHER_CLERK_TOKEN))
-        .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
+        .send({ email: 'bruno@example.com' })
         .expect(403);
-      expect(t.employees.create).not.toHaveBeenCalled();
+      expect(t.clerkAuth.inviteToOrganization).not.toHaveBeenCalled();
     });
 
     it('answers 404 for an unknown Business', async () => {
@@ -147,13 +88,11 @@ describe('Empleado', () => {
       await t.http
         .post('/businesses/999/employees')
         .set(bearer(CLERK_TOKEN))
-        .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
+        .send({ email: 'bruno@example.com' })
         .expect(404);
     });
 
     it.each([
-      ['a blank name', { name: '   ' }],
-      ['a missing name', { name: undefined }],
       ['a malformed email', { email: 'bruno@' }],
       ['a missing email', { email: undefined }],
     ])(
@@ -162,12 +101,96 @@ describe('Empleado', () => {
         await t.http
           .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
           .set(bearer(CLERK_TOKEN))
-          .send({ name: 'Bruno Díaz', email: 'bruno@example.com', ...override })
+          .send(override)
           .expect(400);
 
-        expect(t.employees.create).not.toHaveBeenCalled();
+        expect(t.clerkAuth.inviteToOrganization).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('GET /employees/me', () => {
+    it("resolves the Clerk JWT to the caller's own Empleado record", async () => {
+      scriptEmployeeSession(t);
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+
+      const res = await t.http
+        .get('/employees/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual({
+        id: ANAS_EMPLOYEE.id,
+        name: ANAS_EMPLOYEE.name,
+        email: ANAS_EMPLOYEE.email,
+        verified: true,
+      });
+    });
+
+    it('creates the local Empleado just-in-time on its first sight, from the token\'s Organization', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: 'user_clerk_new_employee',
+        orgId: ANAS_BUSINESS.clerkOrgId,
+      });
+      t.employees.findByClerkId.mockResolvedValue(null);
+      t.businesses.findByClerkOrgId.mockResolvedValue(ANAS_BUSINESS);
+      t.clerkAuth.getProfile.mockResolvedValue({
+        name: 'Bruno Díaz',
+        email: 'bruno@example.com',
+      });
+      const created = {
+        ...PENDING_EMPLOYEE,
+        clerkId: 'user_clerk_new_employee',
+        emailVerifiedAt: t.clock.now(),
+      };
+      t.employees.create.mockResolvedValue(created);
+      t.employees.findById.mockResolvedValue(created);
+
+      const res = await t.http
+        .get('/employees/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.employees.create).toHaveBeenCalledWith({
+        businessId: ANAS_BUSINESS.id,
+        clerkId: 'user_clerk_new_employee',
+        name: 'Bruno Díaz',
+        email: 'bruno@example.com',
+        emailVerifiedAt: t.clock.now(),
+      });
+      expect(res.body).toMatchObject({ name: 'Bruno Díaz', verified: true });
+    });
+
+    it('answers 401 when the token carries no active Organization and no Empleado exists yet', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: 'user_clerk_new_employee',
+        orgId: null,
+      });
+      t.employees.findByClerkId.mockResolvedValue(null);
+
+      await t.http.get('/employees/me').expect(401);
+      expect(t.businesses.findByClerkOrgId).not.toHaveBeenCalled();
+    });
+
+    it("answers 401 for an Organization that maps to no Business", async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: 'user_clerk_new_employee',
+        orgId: 'org_unknown',
+      });
+      t.employees.findByClerkId.mockResolvedValue(null);
+      t.businesses.findByClerkOrgId.mockResolvedValue(null);
+
+      await t.http.get('/employees/me').expect(401);
+      expect(t.employees.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 401 without a Clerk token', async () => {
+      t.clerkAuth.verifyToken.mockRejectedValue(
+        new UnauthenticatedError('Missing Clerk token'),
+      );
+
+      await t.http.get('/employees/me').expect(401);
+    });
   });
 
   describe('POST /employees/verification', () => {
@@ -507,8 +530,8 @@ describe('Empleado', () => {
   it('answers a database failure with a generic 500', async () => {
     scriptSession(t);
     t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
-    t.users.findByEmail.mockResolvedValue(null);
-    t.employees.create.mockRejectedValue(
+    t.users.findById.mockResolvedValue(ANA);
+    t.clerkAuth.inviteToOrganization.mockRejectedValue(
       new DatabaseOperationError('Database operation failed', {
         cause: new Error('connection refused at 10.0.0.1'),
       }),
@@ -517,7 +540,7 @@ describe('Empleado', () => {
     const res = await t.http
       .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
       .set(bearer(CLERK_TOKEN))
-      .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
+      .send({ email: 'bruno@example.com' })
       .expect(500);
 
     expect(res.body).toEqual({

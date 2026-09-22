@@ -46,6 +46,7 @@ export class CreateBusinessUseCase {
       },
       // Verified unconditionally: a Usuario's email is always Clerk-verified.
       employee: {
+        clerkId: owner.clerkId,
         name: owner.name,
         email: owner.email,
         emailVerifiedAt: this.clock.now(),

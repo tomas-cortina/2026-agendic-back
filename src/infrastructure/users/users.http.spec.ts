@@ -34,7 +34,10 @@ describe('Usuario', () => {
     });
 
     it('creates the User from the Clerk profile on its first request', async () => {
-      t.clerkAuth.verifyToken.mockResolvedValue('user_clerk_new');
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: 'user_clerk_new',
+        orgId: null,
+      });
       t.users.findByClerkId.mockResolvedValue(null);
       t.clerkAuth.getProfile.mockResolvedValue({
         name: 'New Owner',

@@ -29,7 +29,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from './domain/services/services.repository';
-import { CLERK_AUTH, ClerkAuth } from './domain/users/clerk-auth';
+import { CLERK_AUTH, ClerkAuth, ClerkIdentity } from './domain/users/clerk-auth';
 import { Role, User } from './domain/users/user';
 import {
   USERS_REPOSITORY,
@@ -68,15 +68,19 @@ export async function createTestApp() {
     sendVerificationCode: jest.fn(),
   };
   const clerkAuth: jest.Mocked<ClerkAuth> = {
-    verifyToken: jest.fn<Promise<string>, [string | undefined]>(async () => {
-      throw new UnauthenticatedError('Missing or invalid Clerk token');
-    }),
+    verifyToken: jest.fn<Promise<ClerkIdentity>, [string | undefined]>(
+      async () => {
+        throw new UnauthenticatedError('Missing or invalid Clerk token');
+      },
+    ),
     getProfile: jest.fn(),
     createOrganization: jest.fn(),
+    inviteToOrganization: jest.fn(),
   };
   const businesses: jest.Mocked<BusinessesRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
+    findByClerkOrgId: jest.fn(),
     list: jest.fn(),
     update: jest.fn(),
   };
@@ -90,6 +94,7 @@ export async function createTestApp() {
     listByIds: jest.fn(),
     create: jest.fn(),
     findById: jest.fn(),
+    findByClerkId: jest.fn(),
     listActiveByBusiness: jest.fn(),
     update: jest.fn(),
     retire: jest.fn(),
@@ -191,6 +196,7 @@ export const ANAS_BRANCH: Branch = {
 export const ANAS_EMPLOYEE: Employee = {
   id: 1,
   businessId: ANAS_BUSINESS.id,
+  clerkId: ANA.clerkId,
   name: ANA.name,
   email: ANA.email,
   emailVerifiedAt: new TestClock().now(),
@@ -213,11 +219,13 @@ export const ANAS_SERVICE: Service = {
 export const CLERK_TOKEN = 'clerk-jwt-1';
 export const OTHER_CLERK_TOKEN = 'clerk-jwt-2';
 
-/** Makes `bearer(CLERK_TOKEN)` resolve to Ana, an already-known local User. */
+/** Makes `bearer(CLERK_TOKEN)` resolve to Ana, an already-known local User, active in her own Organization. */
 export function scriptSession({ clerkAuth, users }: TestApp) {
   const verifyToken = clerkAuth.verifyToken.getMockImplementation()!;
   clerkAuth.verifyToken.mockImplementation(async (token) =>
-    token === CLERK_TOKEN ? ANA.clerkId : verifyToken(token),
+    token === CLERK_TOKEN
+      ? { clerkId: ANA.clerkId, orgId: ANAS_BUSINESS.clerkOrgId }
+      : verifyToken(token),
   );
   const findByClerkId = users.findByClerkId.getMockImplementation();
   users.findByClerkId.mockImplementation(async (clerkId) =>
@@ -229,11 +237,27 @@ export function scriptSession({ clerkAuth, users }: TestApp) {
 export function scriptOtherSession({ clerkAuth, users }: TestApp) {
   const verifyToken = clerkAuth.verifyToken.getMockImplementation()!;
   clerkAuth.verifyToken.mockImplementation(async (token) =>
-    token === OTHER_CLERK_TOKEN ? BRUNO.clerkId : verifyToken(token),
+    token === OTHER_CLERK_TOKEN
+      ? { clerkId: BRUNO.clerkId, orgId: null }
+      : verifyToken(token),
   );
   const findByClerkId = users.findByClerkId.getMockImplementation();
   users.findByClerkId.mockImplementation(async (clerkId) =>
     clerkId === BRUNO.clerkId ? BRUNO : (findByClerkId?.(clerkId) ?? null),
+  );
+}
+
+/** Makes `bearer(CLERK_TOKEN)` resolve to Ana as the Empleado of her own Negocio (see scriptSession for the User side). */
+export function scriptEmployeeSession({ clerkAuth, employees }: TestApp) {
+  const verifyToken = clerkAuth.verifyToken.getMockImplementation()!;
+  clerkAuth.verifyToken.mockImplementation(async (token) =>
+    token === CLERK_TOKEN
+      ? { clerkId: ANA.clerkId, orgId: ANAS_BUSINESS.clerkOrgId }
+      : verifyToken(token),
+  );
+  const findByClerkId = employees.findByClerkId.getMockImplementation();
+  employees.findByClerkId.mockImplementation(async (clerkId) =>
+    clerkId === ANA.clerkId ? ANAS_EMPLOYEE : (findByClerkId?.(clerkId) ?? null),
   );
 }
 

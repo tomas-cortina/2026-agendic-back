@@ -1,6 +1,7 @@
 export interface Employee {
   id: number;
   businessId: number;
+  clerkId: string;
   name: string;
   email: string;
   /** null while their verification link is still pending. */

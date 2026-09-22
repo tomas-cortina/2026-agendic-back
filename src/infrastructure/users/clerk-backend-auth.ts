@@ -4,7 +4,11 @@ import {
 } from '@clerk/backend';
 import { Injectable } from '@nestjs/common';
 import { UnauthenticatedError } from '../../domain/errors';
-import { ClerkAuth, ClerkProfile } from '../../domain/users/clerk-auth';
+import {
+  ClerkAuth,
+  ClerkIdentity,
+  ClerkProfile,
+} from '../../domain/users/clerk-auth';
 
 @Injectable()
 export class ClerkBackendAuth implements ClerkAuth {
@@ -12,13 +16,13 @@ export class ClerkBackendAuth implements ClerkAuth {
     secretKey: process.env.CLERK_SECRET_KEY,
   });
 
-  async verifyToken(token: string | undefined): Promise<string> {
+  async verifyToken(token: string | undefined): Promise<ClerkIdentity> {
     if (!token) throw new UnauthenticatedError('Missing Clerk token');
     try {
       const payload = await verifyClerkToken(token, {
         secretKey: process.env.CLERK_SECRET_KEY,
       });
-      return payload.sub;
+      return { clerkId: payload.sub, orgId: payload.org_id ?? null };
     } catch (error) {
       throw new UnauthenticatedError('Invalid or expired Clerk token', {
         cause: error,
@@ -47,5 +51,14 @@ export class ClerkBackendAuth implements ClerkAuth {
         createdBy: clerkId,
       });
     return organization.id;
+  }
+
+  async inviteToOrganization(orgId: string, email: string, inviterId: string) {
+    await this.clerkClient.organizations.createOrganizationInvitation({
+      organizationId: orgId,
+      emailAddress: email,
+      role: 'org:member',
+      inviterUserId: inviterId,
+    });
   }
 }
