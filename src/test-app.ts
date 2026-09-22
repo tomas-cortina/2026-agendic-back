@@ -23,7 +23,7 @@ import {
   EmployeesRepository,
 } from './domain/employees/employees.repository';
 import { Mailer, MAILER } from './domain/mailer';
-import { Service } from './domain/services/service';
+import { Service, ServiceCategory } from './domain/services/service';
 import {
   SERVICES_REPOSITORY,
   ServicesRepository,
@@ -225,6 +225,7 @@ export const ANAS_SERVICE: Service = {
   branchId: ANAS_BRANCH.id,
   name: 'Haircut',
   description: 'A basic haircut',
+  category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
   retiredAt: null,

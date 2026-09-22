@@ -48,6 +48,7 @@ export class CreateServiceUseCase {
       branchId,
       name: input.name,
       description: input.description ?? null,
+      category: input.category,
       durationMinutes: input.durationMinutes,
       price: input.price,
       employeeIds: input.employeeIds,

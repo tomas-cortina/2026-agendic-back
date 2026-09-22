@@ -4,6 +4,7 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../../domain/errors';
+import { ServiceCategory } from '../../../domain/services/service';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { PrismaBusinessesRepository } from '../prisma-businesses.repository';
@@ -44,6 +45,7 @@ const SERVICE_ROW = {
   branchId: BRANCH_ROW.id,
   name: 'Haircut',
   description: 'A basic haircut',
+  category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: '20',
   retiredAt: null,
@@ -65,6 +67,7 @@ const CREATE_DATA = {
   service: {
     name: 'Haircut',
     description: 'A basic haircut',
+    category: ServiceCategory.SPA,
     durationMinutes: 30,
     price: 20,
   },
@@ -132,6 +135,7 @@ describe('PrismaBusinessesRepository', () => {
       branchId: BRANCH_ROW.id,
       name: 'Haircut',
       description: 'A basic haircut',
+      category: ServiceCategory.SPA,
       durationMinutes: 30,
       price: 20,
       retiredAt: null,

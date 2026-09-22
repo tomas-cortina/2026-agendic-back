@@ -11,7 +11,7 @@ export interface CreateBusinessData {
   branch: Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt'>;
   service: Pick<
     Service,
-    'name' | 'description' | 'durationMinutes' | 'price'
+    'name' | 'description' | 'category' | 'durationMinutes' | 'price'
   >;
   /** The Dueño, in charge of that first Servicio. */
   employee: Pick<Employee, 'name' | 'email' | 'emailVerifiedAt'>;

@@ -33,7 +33,12 @@ export class PrismaServicesRepository implements ServicesRepository {
   async create(
     data: Pick<
       Service,
-      'branchId' | 'name' | 'description' | 'durationMinutes' | 'price'
+      | 'branchId'
+      | 'name'
+      | 'description'
+      | 'category'
+      | 'durationMinutes'
+      | 'price'
     > & { employeeIds: number[] },
   ) {
     const { employeeIds, ...service } = data;
@@ -71,7 +76,10 @@ export class PrismaServicesRepository implements ServicesRepository {
   async update(
     id: number,
     data: Partial<
-      Pick<Service, 'name' | 'description' | 'durationMinutes' | 'price'>
+      Pick<
+        Service,
+        'name' | 'description' | 'category' | 'durationMinutes' | 'price'
+      >
     >,
   ) {
     return toService(
@@ -155,6 +163,7 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   branchId: row.branchId,
   name: row.name,
   description: row.description,
+  category: row.category as Service['category'],
   durationMinutes: row.durationMinutes,
   price: Number(row.price),
   retiredAt: row.retiredAt,

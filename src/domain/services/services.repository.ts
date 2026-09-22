@@ -7,7 +7,12 @@ export interface ServicesRepository {
   create(
     data: Pick<
       Service,
-      'branchId' | 'name' | 'description' | 'durationMinutes' | 'price'
+      | 'branchId'
+      | 'name'
+      | 'description'
+      | 'category'
+      | 'durationMinutes'
+      | 'price'
     > & { employeeIds: number[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
@@ -16,7 +21,10 @@ export interface ServicesRepository {
   update(
     id: number,
     data: Partial<
-      Pick<Service, 'name' | 'description' | 'durationMinutes' | 'price'>
+      Pick<
+        Service,
+        'name' | 'description' | 'category' | 'durationMinutes' | 'price'
+      >
     >,
   ): Promise<Service>;
   /** Also cancels the Service's future BOOKED Bookings, atomically. */

@@ -1,4 +1,5 @@
 import { ConflictError } from '../../domain/errors';
+import { ServiceCategory } from '../../domain/services/service';
 import {
   ANAS_BRANCH,
   ANAS_BUSINESS,
@@ -29,6 +30,7 @@ const IN_CHARGE = [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }];
 const VALID_SERVICE = {
   name: 'Haircut',
   description: 'A basic haircut',
+  category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
   employeeIds: [ANAS_EMPLOYEE.id],
@@ -39,6 +41,7 @@ const SERVICE = {
   branchId: BRANCH.id,
   name: VALID_SERVICE.name,
   description: VALID_SERVICE.description,
+  category: VALID_SERVICE.category,
   durationMinutes: VALID_SERVICE.durationMinutes,
   price: VALID_SERVICE.price,
   retiredAt: null,
@@ -50,6 +53,7 @@ const PRESENTED_SERVICE = {
   branchId: SERVICE.branchId,
   name: SERVICE.name,
   description: SERVICE.description,
+  category: SERVICE.category,
   durationMinutes: SERVICE.durationMinutes,
   price: SERVICE.price,
   employees: IN_CHARGE,
@@ -99,6 +103,7 @@ describe('Servicio', () => {
         branchId: BRANCH.id,
         name: VALID_SERVICE.name,
         description: null,
+        category: VALID_SERVICE.category,
         durationMinutes: VALID_SERVICE.durationMinutes,
         price: VALID_SERVICE.price,
         employeeIds: VALID_SERVICE.employeeIds,
@@ -222,6 +227,8 @@ describe('Servicio', () => {
     it.each([
       ['a blank name', { name: ' ' }],
       ['a missing name', { name: undefined }],
+      ['an invalid category', { category: 'NOT_A_CATEGORY' }],
+      ['a missing category', { category: undefined }],
       ['a fractional durationMinutes', { durationMinutes: 1.5 }],
       ['a zero durationMinutes', { durationMinutes: 0 }],
       ['a missing durationMinutes', { durationMinutes: undefined }],
@@ -316,6 +323,7 @@ describe('Servicio', () => {
 
     it.each([
       ['a blank name', { name: ' ' }],
+      ['an invalid category', { category: 'NOT_A_CATEGORY' }],
       ['a zero durationMinutes', { durationMinutes: 0 }],
       ['a negative price', { price: -1 }],
     ])('rejects %s with 400, without reaching the repository', async (_, body) => {

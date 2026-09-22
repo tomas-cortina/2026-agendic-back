@@ -1,3 +1,4 @@
+import { ServiceCategory } from '../../domain/services/service';
 import {
   ANA,
   ANAS_BRANCH,
@@ -27,6 +28,7 @@ const BRANCH_PART = {
 const SERVICE_PART = {
   name: 'Haircut',
   description: 'A basic haircut',
+  category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
 };
@@ -91,6 +93,7 @@ describe('Negocio', () => {
           branchId: ANAS_SERVICE.branchId,
           name: ANAS_SERVICE.name,
           description: ANAS_SERVICE.description,
+          category: ANAS_SERVICE.category,
           durationMinutes: ANAS_SERVICE.durationMinutes,
           price: ANAS_SERVICE.price,
           employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],

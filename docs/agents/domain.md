@@ -57,6 +57,7 @@ The glossary is in Spanish; code is in English (ADR 0003). Each term has exactly
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
 | Empleado | `Employee` |
 | Servicio | `Service` |
+| Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| BOOKED \| CANCELLED`) |
 | Turno sin verificar | `BookingStatus.UNVERIFIED` |
 | Reservar | `book` |

@@ -1,5 +1,5 @@
 import { ConflictError, DatabaseOperationError, NotFoundError } from '../../../domain/errors';
-import { Service } from '../../../domain/services/service';
+import { Service, ServiceCategory } from '../../../domain/services/service';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import {
@@ -12,6 +12,7 @@ const SERVICE_ROW = {
   branchId: 1,
   name: 'Haircut',
   description: 'A basic haircut',
+  category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: '20', // Prisma returns Decimal columns as a Decimal-like; Number() reads a numeric string just as well
   retiredAt: null,
@@ -23,6 +24,7 @@ const SERVICE: Service = {
   branchId: 1,
   name: 'Haircut',
   description: 'A basic haircut',
+  category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
   retiredAt: null,
@@ -73,6 +75,7 @@ describe('PrismaServicesRepository', () => {
         branchId: 1,
         name: 'Haircut',
         description: 'A basic haircut',
+        category: ServiceCategory.SPA,
         durationMinutes: 30,
         price: 20,
         employeeIds: [7, 8],
@@ -83,6 +86,7 @@ describe('PrismaServicesRepository', () => {
         branchId: 1,
         name: 'Haircut',
         description: 'A basic haircut',
+        category: ServiceCategory.SPA,
         durationMinutes: 30,
         price: 20,
         employees: { connect: [{ id: 7 }, { id: 8 }] },
@@ -221,6 +225,7 @@ describe('PrismaServicesRepository', () => {
           branchId: 1,
           name: 'Haircut',
           description: null,
+          category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
           employeeIds: [7],

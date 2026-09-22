@@ -1,4 +1,5 @@
-import { ArrayNotEmpty, IsInt, IsNumber, Min } from 'class-validator';
+import { ArrayNotEmpty, IsEnum, IsInt, IsNumber, Min } from 'class-validator';
+import { ServiceCategory } from '../../domain/services/service';
 import { IfPresent, IsName, IsText } from '../users/users.dto';
 
 /** The Servicio's own fields, shared with the Servicio part of POST /businesses. */
@@ -9,6 +10,9 @@ export class ServiceFieldsDto {
   @IfPresent()
   @IsText()
   description?: string;
+
+  @IsEnum(ServiceCategory)
+  category!: ServiceCategory;
 
   @IsInt()
   @Min(1)
@@ -38,6 +42,10 @@ export class UpdateServiceDto {
   @IfPresent()
   @IsText()
   description?: string;
+
+  @IfPresent()
+  @IsEnum(ServiceCategory)
+  category?: ServiceCategory;
 
   @IfPresent()
   @IsInt()

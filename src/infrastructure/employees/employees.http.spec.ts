@@ -4,6 +4,7 @@ import {
   ExpiredError,
   InvalidCodeError,
 } from '../../domain/errors';
+import { ServiceCategory } from '../../domain/services/service';
 import {
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
@@ -402,6 +403,7 @@ describe('Empleado', () => {
           branchId: 1,
           name: 'Haircut',
           description: null,
+          category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
           retiredAt: null,
@@ -424,6 +426,7 @@ describe('Empleado', () => {
           branchId: 1,
           name: 'Haircut',
           description: null,
+          category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
           retiredAt: null,

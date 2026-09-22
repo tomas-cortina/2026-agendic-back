@@ -80,10 +80,11 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
 
-- `CreateServiceDto`: `{ name, description?, durationMinutes (int ≥1), price (number ≥0), employeeIds: number[] (no vacío) }`
-- `UpdateServiceDto`: `{ name?, description?, durationMinutes?, price? }`
+- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), employeeIds: number[] (no vacío) }`
+- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price? }`
 - `AssignEmployeeDto`: `{ employeeId }`
-- Respuesta (`presentService`): `{ id, branchId, name, description, durationMinutes, price, employees: [{id, name}] }`
+- Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, employees: [{id, name}] }`
+- `category` es un enum fijo: `CLINICA | SPA | GIMNASIO | ACADEMIA | OTRO`, requerido en creación
 
 ## Employees (Empleado)
 

@@ -25,6 +25,14 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum ServiceCategory {
+  CLINICA
+  SPA
+  GIMNASIO
+  ACADEMIA
+  OTRO
+}
+
 model User {
   id                         Int       @id @default(autoincrement())
   name                       String
@@ -77,6 +85,7 @@ model Service {
   branchId        Int
   name            String
   description     String?
+  category        ServiceCategory
   durationMinutes Int
   price           Decimal   @db.Decimal(10, 2)
   retiredAt       DateTime? @db.Timestamptz(3) // when dado de baja; null while offered
