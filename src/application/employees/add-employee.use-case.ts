@@ -22,7 +22,7 @@ export interface AddEmployeeInput {
   email: string;
 }
 
-/** Trusts an email at once when it's an already verified Usuario's; otherwise sends a verification code. */
+/** Trusts an email at once when it's an already registered Usuario's (Clerk keeps those verified); otherwise sends a verification code. */
 @Injectable()
 export class AddEmployeeUseCase {
   constructor(
@@ -43,7 +43,7 @@ export class AddEmployeeUseCase {
     assertOwner(await this.businesses.findById(businessId), userId);
     const now = this.clock.now();
     const trustedUser = await this.users.findByEmail(input.email);
-    const emailVerifiedAt = trustedUser?.emailVerifiedAt ? now : null;
+    const emailVerifiedAt = trustedUser ? now : null;
     const employee = await this.employees.create({
       businessId,
       name: input.name,

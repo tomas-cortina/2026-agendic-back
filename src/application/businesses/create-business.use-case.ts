@@ -36,8 +36,7 @@ export class CreateBusinessUseCase {
         ...input.service,
         description: input.service.description ?? null,
       },
-      // ponytail: verified unconditionally because a Usuario's email can't be unverified yet. Once ticket 04
-      // lands User.emailVerifiedAt, carry that over instead of assuming it.
+      // Verified unconditionally: a Usuario's email is always Clerk-verified.
       employee: {
         name: owner.name,
         email: owner.email,

@@ -11,8 +11,7 @@ import {
 import { CreateBranchUseCase } from '../../application/branches/create-branch.use-case';
 import { ListBranchesByBusinessUseCase } from '../../application/branches/list-branches-by-business.use-case';
 import { UpdateBranchUseCase } from '../../application/branches/update-branch.use-case';
-import { Session } from '../../domain/sessions/session';
-import { CurrentSession, SessionGuard } from '../sessions/session.guard';
+import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentBranch } from './branch.presenter';
 import { CreateBranchDto, UpdateBranchDto } from './branches.dto';
 
@@ -25,26 +24,26 @@ export class BranchesController {
   ) {}
 
   @Post('businesses/:businessId/branches')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async create(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('businessId', ParseIntPipe) businessId: number,
     @Body() dto: CreateBranchDto,
   ) {
     return presentBranch(
-      await this.createBranchUseCase.execute(session.userId, businessId, dto),
+      await this.createBranchUseCase.execute(userId, businessId, dto),
     );
   }
 
   @Patch('branches/:id')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async update(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateBranchDto,
   ) {
     return presentBranch(
-      await this.updateBranchUseCase.execute(session.userId, id, dto),
+      await this.updateBranchUseCase.execute(userId, id, dto),
     );
   }
 

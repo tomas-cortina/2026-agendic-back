@@ -6,10 +6,10 @@ import {
   ANAS_EMPLOYEE,
   bearer,
   createTestApp,
-  OTHER_SESSION_ID,
+  OTHER_CLERK_TOKEN,
   scriptOtherSession,
   scriptSession,
-  SESSION_ID,
+  CLERK_TOKEN,
   TestApp,
 } from '../../test-app';
 
@@ -71,7 +71,7 @@ describe('Negocio', () => {
 
       const res = await t.http
         .post('/businesses')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_BODY)
         .expect(201);
 
@@ -112,7 +112,7 @@ describe('Negocio', () => {
 
       await t.http
         .post('/businesses')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({
           ...VALID_BODY,
           service: { ...SERVICE_PART, description: undefined },
@@ -136,12 +136,12 @@ describe('Negocio', () => {
 
       await t.http
         .post('/businesses')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_BODY)
         .expect(201);
       const res = await t.http
         .post('/businesses')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_BODY, business: { ...BUSINESS_PART, name: "Ana's Spa" } })
         .expect(201);
 
@@ -156,7 +156,7 @@ describe('Negocio', () => {
     it('answers 422 when the Sucursal closes before it opens', async () => {
       await t.http
         .post('/businesses')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({
           ...VALID_BODY,
           branch: { ...BRANCH_PART, opensAt: '18:00', closesAt: '09:00' },
@@ -193,7 +193,7 @@ describe('Negocio', () => {
       async (_, override) => {
         await t.http
           .post('/businesses')
-          .set(bearer(SESSION_ID))
+          .set(bearer(CLERK_TOKEN))
           .send({ ...VALID_BODY, ...override })
           .expect(400);
 
@@ -217,7 +217,7 @@ describe('Negocio', () => {
 
       const res = await t.http
         .patch(`/businesses/${ANAS_BUSINESS.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'New name' })
         .expect(200);
 
@@ -230,7 +230,7 @@ describe('Negocio', () => {
     it("answers 403 for another Usuario", async () => {
       await t.http
         .patch(`/businesses/${ANAS_BUSINESS.id}`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send({ name: 'New name' })
         .expect(403);
 
@@ -242,7 +242,7 @@ describe('Negocio', () => {
 
       await t.http
         .patch('/businesses/999')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'New name' })
         .expect(404);
     });
@@ -262,7 +262,7 @@ describe('Negocio', () => {
     ])('rejects %s with 400, without reaching the repository', async (_, body) => {
       await t.http
         .patch(`/businesses/${ANAS_BUSINESS.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(body)
         .expect(400);
 

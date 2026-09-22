@@ -1,0 +1,42 @@
+import {
+  createClerkClient,
+  verifyToken as verifyClerkToken,
+} from '@clerk/backend';
+import { Injectable } from '@nestjs/common';
+import { UnauthenticatedError } from '../../domain/errors';
+import { ClerkAuth, ClerkProfile } from '../../domain/users/clerk-auth';
+
+@Injectable()
+export class ClerkBackendAuth implements ClerkAuth {
+  private readonly clerkClient = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+
+  async verifyToken(token: string | undefined): Promise<string> {
+    if (!token) throw new UnauthenticatedError('Missing Clerk token');
+    try {
+      const payload = await verifyClerkToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY,
+      });
+      return payload.sub;
+    } catch (error) {
+      throw new UnauthenticatedError('Invalid or expired Clerk token', {
+        cause: error,
+      });
+    }
+  }
+
+  async getProfile(clerkId: string): Promise<ClerkProfile> {
+    const clerkUser = await this.clerkClient.users.getUser(clerkId);
+    const email =
+      clerkUser.emailAddresses.find(
+        (address) => address.id === clerkUser.primaryEmailAddressId,
+      )?.emailAddress ?? '';
+    const name =
+      [clerkUser.firstName, clerkUser.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || email;
+    return { name, email };
+  }
+}

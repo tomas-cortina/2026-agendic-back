@@ -5,11 +5,11 @@ import { ListActiveServicesByBranchUseCase } from '../../application/services/li
 import { RemoveEmployeeUseCase } from '../../application/services/remove-employee.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
-import { SessionsModule } from '../sessions/sessions.module';
+import { UsersModule } from '../users/users.module';
 import { ServicesController } from './services.controller';
 
 @Module({
-  imports: [SessionsModule],
+  imports: [UsersModule],
   controllers: [ServicesController],
   providers: [
     CreateServiceUseCase,

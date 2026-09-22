@@ -11,10 +11,10 @@ import {
   bearer,
   BRUNO,
   createTestApp,
-  OTHER_SESSION_ID,
+  OTHER_CLERK_TOKEN,
   scriptOtherSession,
   scriptSession,
-  SESSION_ID,
+  CLERK_TOKEN,
   TestApp,
 } from '../../test-app';
 
@@ -48,7 +48,7 @@ describe('Empleado', () => {
 
       const res = await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
         .expect(201);
 
@@ -68,49 +68,33 @@ describe('Empleado', () => {
       expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
 
-    it.each([
-      [
-        'no Usuario has that email',
-        () => t.users.findByEmail.mockResolvedValue(null),
-      ],
-      [
-        "the Usuario's email is not verified",
-        () =>
-          t.users.findByEmail.mockResolvedValue({
-            ...BRUNO,
-            emailVerifiedAt: null,
-          }),
-      ],
-    ])(
-      'leaves the Empleado pending and sends a verification code when %s',
-      async (_, script) => {
-        script();
-        t.employees.create.mockResolvedValue(PENDING_EMPLOYEE);
-        t.employees.issueVerificationCode.mockResolvedValue('ABCDEF');
+    it('leaves the Empleado pending and sends a verification code when no Usuario has that email', async () => {
+      t.users.findByEmail.mockResolvedValue(null);
+      t.employees.create.mockResolvedValue(PENDING_EMPLOYEE);
+      t.employees.issueVerificationCode.mockResolvedValue('ABCDEF');
 
-        const res = await t.http
-          .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-          .set(bearer(SESSION_ID))
-          .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
-          .expect(201);
+      const res = await t.http
+        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
+        .expect(201);
 
-        expect(t.employees.create).toHaveBeenCalledWith({
-          businessId: ANAS_BUSINESS.id,
-          name: 'Bruno Díaz',
-          email: 'bruno@example.com',
-          emailVerifiedAt: null,
-        });
-        expect(t.employees.issueVerificationCode).toHaveBeenCalledWith(
-          PENDING_EMPLOYEE.id,
-          new Date('2026-01-02T12:00:00.000Z'),
-        );
-        expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
-          'bruno@example.com',
-          'ABCDEF',
-        );
-        expect(res.body).toMatchObject({ verified: false });
-      },
-    );
+      expect(t.employees.create).toHaveBeenCalledWith({
+        businessId: ANAS_BUSINESS.id,
+        name: 'Bruno Díaz',
+        email: 'bruno@example.com',
+        emailVerifiedAt: null,
+      });
+      expect(t.employees.issueVerificationCode).toHaveBeenCalledWith(
+        PENDING_EMPLOYEE.id,
+        new Date('2026-01-02T12:00:00.000Z'),
+      );
+      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
+        'bruno@example.com',
+        'ABCDEF',
+      );
+      expect(res.body).toMatchObject({ verified: false });
+    });
 
     it('passes the trimmed name and the trimmed, lowercased email', async () => {
       t.users.findByEmail.mockResolvedValue(null);
@@ -119,7 +103,7 @@ describe('Empleado', () => {
 
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: '  Bruno Díaz  ', email: '  Bruno@Example.COM ' })
         .expect(201);
 
@@ -140,7 +124,7 @@ describe('Empleado', () => {
 
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
         .expect(409);
       expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
@@ -151,7 +135,7 @@ describe('Empleado', () => {
 
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
         .expect(403);
       expect(t.employees.create).not.toHaveBeenCalled();
@@ -162,7 +146,7 @@ describe('Empleado', () => {
 
       await t.http
         .post('/businesses/999/employees')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
         .expect(404);
     });
@@ -177,7 +161,7 @@ describe('Empleado', () => {
       async (_, override) => {
         await t.http
           .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-          .set(bearer(SESSION_ID))
+          .set(bearer(CLERK_TOKEN))
           .send({ name: 'Bruno Díaz', email: 'bruno@example.com', ...override })
           .expect(400);
 
@@ -245,7 +229,7 @@ describe('Empleado', () => {
 
       await t.http
         .post(`/employees/${PENDING_EMPLOYEE.id}/verification/resend`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(204);
 
       expect(t.employees.issueVerificationCode).toHaveBeenCalledWith(
@@ -263,7 +247,7 @@ describe('Empleado', () => {
 
       await t.http
         .post(`/employees/${ANAS_EMPLOYEE.id}/verification/resend`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(422);
       expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
     });
@@ -273,7 +257,7 @@ describe('Empleado', () => {
 
       await t.http
         .post(`/employees/${PENDING_EMPLOYEE.id}/verification/resend`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
     });
 
@@ -282,7 +266,7 @@ describe('Empleado', () => {
 
       await t.http
         .post('/employees/999/verification/resend')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(404);
     });
   });
@@ -302,7 +286,7 @@ describe('Empleado', () => {
 
       const res = await t.http
         .patch(`/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: '  Ana María  ' })
         .expect(200);
 
@@ -322,7 +306,7 @@ describe('Empleado', () => {
 
       await t.http
         .patch(`/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send({ name: 'Ana María' })
         .expect(403);
       expect(t.employees.update).not.toHaveBeenCalled();
@@ -333,7 +317,7 @@ describe('Empleado', () => {
 
       await t.http
         .patch('/employees/999')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'Ana María' })
         .expect(404);
     });
@@ -347,7 +331,7 @@ describe('Empleado', () => {
       async (_, override) => {
         await t.http
           .patch(`/employees/${ANAS_EMPLOYEE.id}`)
-          .set(bearer(SESSION_ID))
+          .set(bearer(CLERK_TOKEN))
           .send({ name: 'Ana María', ...override })
           .expect(400);
 
@@ -372,7 +356,7 @@ describe('Empleado', () => {
     it('gives the Empleado de baja, for the Dueño', async () => {
       const res = await t.http
         .delete(`/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(t.employees.retire).toHaveBeenCalledWith(
@@ -390,7 +374,7 @@ describe('Empleado', () => {
 
       const res = await t.http
         .delete(`/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(res.body).toEqual({ cancelledBookings: 5 });
@@ -413,7 +397,7 @@ describe('Empleado', () => {
 
       await t.http
         .delete(`/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(422);
 
       expect(t.employees.retire).not.toHaveBeenCalled();
@@ -439,7 +423,7 @@ describe('Empleado', () => {
 
       await t.http
         .delete(`/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(t.employees.retire).toHaveBeenCalled();
@@ -452,7 +436,7 @@ describe('Empleado', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .delete(`/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
 
       expect(t.employees.retire).not.toHaveBeenCalled();
@@ -461,7 +445,7 @@ describe('Empleado', () => {
     it('answers 404 for an unknown Empleado', async () => {
       t.employees.findById.mockResolvedValue(null);
 
-      await t.http.delete('/employees/999').set(bearer(SESSION_ID)).expect(404);
+      await t.http.delete('/employees/999').set(bearer(CLERK_TOKEN)).expect(404);
     });
   });
 
@@ -479,7 +463,7 @@ describe('Empleado', () => {
 
       const res = await t.http
         .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(res.body).toEqual([
@@ -506,7 +490,7 @@ describe('Empleado', () => {
 
       await t.http
         .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
     });
 
@@ -515,7 +499,7 @@ describe('Empleado', () => {
 
       await t.http
         .get('/businesses/999/employees')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(404);
     });
   });
@@ -532,7 +516,7 @@ describe('Empleado', () => {
 
     const res = await t.http
       .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-      .set(bearer(SESSION_ID))
+      .set(bearer(CLERK_TOKEN))
       .send({ name: 'Bruno Díaz', email: 'bruno@example.com' })
       .expect(500);
 

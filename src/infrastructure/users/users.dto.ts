@@ -4,7 +4,6 @@ import {
   IsEmail,
   IsNotEmpty,
   IsString,
-  Length,
   Matches,
   ValidateIf,
 } from 'class-validator';
@@ -34,18 +33,6 @@ export const IsVerificationCode = () =>
     Matches(CODE_PATTERN),
   );
 
-export class SignUpDto {
-  @IsName()
-  name!: string;
-
-  @IsNormalizedEmail()
-  email!: string;
-
-  @IsString()
-  @Length(12, 72)
-  password!: string;
-}
-
 /** Unlike @IsOptional, skips validation only when the field is absent, so null is rejected. */
 export const IfPresent = () => ValidateIf((_, value) => value !== undefined);
 
@@ -53,21 +40,4 @@ export class UpdateMeDto {
   @IfPresent()
   @IsName()
   name?: string;
-
-  @IfPresent()
-  @IsNormalizedEmail()
-  email?: string;
-}
-
-export class VerifyEmailDto {
-  @IsNormalizedEmail()
-  email!: string;
-
-  @IsVerificationCode()
-  code!: string;
-}
-
-export class ResendVerificationDto {
-  @IsNormalizedEmail()
-  email!: string;
 }

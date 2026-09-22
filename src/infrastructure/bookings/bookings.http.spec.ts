@@ -7,10 +7,10 @@ import {
   ANAS_SERVICE,
   bearer,
   createTestApp,
-  OTHER_SESSION_ID,
+  OTHER_CLERK_TOKEN,
   scriptOtherSession,
   scriptSession,
-  SESSION_ID,
+  CLERK_TOKEN,
   TestApp,
 } from '../../test-app';
 
@@ -287,7 +287,7 @@ describe('Turno', () => {
     it("lists every Turno of the Negocio, with the Cliente's name, email and status, for the Dueño", async () => {
       const res = await t.http
         .get(`/businesses/${ANAS_BUSINESS.id}/bookings`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(res.body).toEqual([
@@ -311,7 +311,7 @@ describe('Turno', () => {
 
       const res = await t.http
         .get(`/businesses/${ANAS_BUSINESS.id}/bookings`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(res.body).toMatchObject([{ status: 'CANCELLED' }]);
@@ -324,7 +324,7 @@ describe('Turno', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .get(`/businesses/${ANAS_BUSINESS.id}/bookings`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
     });
 
@@ -333,7 +333,7 @@ describe('Turno', () => {
 
       await t.http
         .get('/businesses/999/bookings')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(404);
     });
   });
@@ -341,6 +341,6 @@ describe('Turno', () => {
   it('GET /me/bookings does not exist', async () => {
     scriptSession(t);
 
-    await t.http.get('/me/bookings').set(bearer(SESSION_ID)).expect(404);
+    await t.http.get('/me/bookings').set(bearer(CLERK_TOKEN)).expect(404);
   });
 });

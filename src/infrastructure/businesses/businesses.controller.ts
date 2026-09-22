@@ -12,11 +12,10 @@ import { CreateBusinessUseCase } from '../../application/businesses/create-busin
 import { GetBusinessUseCase } from '../../application/businesses/get-business.use-case';
 import { ListBusinessesUseCase } from '../../application/businesses/list-businesses.use-case';
 import { UpdateBusinessUseCase } from '../../application/businesses/update-business.use-case';
-import { Session } from '../../domain/sessions/session';
 import { presentBranch } from '../branches/branch.presenter';
 import { presentEmployee } from '../employees/employee.presenter';
 import { presentService } from '../services/service.presenter';
-import { CurrentSession, SessionGuard } from '../sessions/session.guard';
+import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentBusiness } from './business.presenter';
 import { CreateBusinessDto, UpdateBusinessDto } from './businesses.dto';
 
@@ -30,15 +29,12 @@ export class BusinessesController {
   ) {}
 
   @Post()
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async create(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Body() dto: CreateBusinessDto,
   ) {
-    const created = await this.createBusinessUseCase.execute(
-      session.userId,
-      dto,
-    );
+    const created = await this.createBusinessUseCase.execute(userId, dto);
     return {
       business: presentBusiness(created.business),
       branch: presentBranch(created.branch),
@@ -48,14 +44,14 @@ export class BusinessesController {
   }
 
   @Patch(':id')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async update(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateBusinessDto,
   ) {
     return presentBusiness(
-      await this.updateBusinessUseCase.execute(session.userId, id, dto),
+      await this.updateBusinessUseCase.execute(userId, id, dto),
     );
   }
 

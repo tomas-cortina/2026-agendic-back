@@ -10,8 +10,7 @@ import {
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
 import { VerifyBookingUseCase } from '../../application/bookings/verify-booking.use-case';
-import { Session } from '../../domain/sessions/session';
-import { CurrentSession, SessionGuard } from '../sessions/session.guard';
+import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentBooking, presentBookingForOwner } from './booking.presenter';
 import { CreateBookingDto, VerifyBookingDto } from './bookings.dto';
 
@@ -42,16 +41,13 @@ export class BookingsController {
   }
 
   @Get('businesses/:id/bookings')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async listByBusiness(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) businessId: number,
   ) {
     return (
-      await this.listBookingsByBusinessUseCase.execute(
-        session.userId,
-        businessId,
-      )
+      await this.listBookingsByBusinessUseCase.execute(userId, businessId)
     ).map(presentBookingForOwner);
   }
 }

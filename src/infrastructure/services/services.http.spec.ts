@@ -7,10 +7,10 @@ import {
   bearer,
   createTestApp,
   DAY_MS,
-  OTHER_SESSION_ID,
+  OTHER_CLERK_TOKEN,
   scriptOtherSession,
   scriptSession,
-  SESSION_ID,
+  CLERK_TOKEN,
   TestApp,
 } from '../../test-app';
 
@@ -79,7 +79,7 @@ describe('Servicio', () => {
 
       const res = await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_SERVICE)
         .expect(201);
 
@@ -95,7 +95,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_SERVICE, description: undefined })
         .expect(201);
 
@@ -119,7 +119,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({
           ...VALID_SERVICE,
           employeeIds: [ANAS_EMPLOYEE.id, UNVERIFIED_EMPLOYEE.id],
@@ -138,7 +138,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_SERVICE, employeeIds: [UNVERIFIED_EMPLOYEE.id] })
         .expect(422);
 
@@ -152,7 +152,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_SERVICE)
         .expect(422);
 
@@ -166,7 +166,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_SERVICE)
         .expect(422);
 
@@ -178,7 +178,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_SERVICE, employeeIds: [999] })
         .expect(422);
 
@@ -195,7 +195,7 @@ describe('Servicio', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send(VALID_SERVICE)
         .expect(403);
 
@@ -207,7 +207,7 @@ describe('Servicio', () => {
 
       await t.http
         .post('/branches/999/services')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_SERVICE)
         .expect(404);
     });
@@ -219,7 +219,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_SERVICE)
         .expect(409);
     });
@@ -240,7 +240,7 @@ describe('Servicio', () => {
     ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_SERVICE, ...override })
         .expect(400);
 
@@ -252,7 +252,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_SERVICE, price: 0 })
         .expect(201);
     });
@@ -272,7 +272,7 @@ describe('Servicio', () => {
 
       const res = await t.http
         .patch(`/services/${SERVICE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ price: 25 })
         .expect(200);
 
@@ -292,7 +292,7 @@ describe('Servicio', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .patch(`/services/${SERVICE.id}`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send({ price: 25 })
         .expect(403);
 
@@ -304,7 +304,7 @@ describe('Servicio', () => {
 
       await t.http
         .patch('/services/999')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ price: 25 })
         .expect(404);
     });
@@ -316,7 +316,7 @@ describe('Servicio', () => {
 
       await t.http
         .patch(`/services/${SERVICE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'Taken' })
         .expect(409);
     });
@@ -329,7 +329,7 @@ describe('Servicio', () => {
     ])('rejects %s with 400, without reaching the repository', async (_, body) => {
       await t.http
         .patch(`/services/${SERVICE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(body)
         .expect(400);
 
@@ -353,7 +353,7 @@ describe('Servicio', () => {
     it('gives the Servicio de baja, for the Dueño', async () => {
       const res = await t.http
         .delete(`/services/${SERVICE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(t.services.retire).toHaveBeenCalledWith(SERVICE.id, expect.any(Date));
@@ -365,7 +365,7 @@ describe('Servicio', () => {
 
       await t.http
         .delete(`/services/${SERVICE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(t.services.retire).toHaveBeenCalledWith(SERVICE.id, t.clock.now());
@@ -379,7 +379,7 @@ describe('Servicio', () => {
 
       const res = await t.http
         .delete(`/services/${SERVICE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(res.body).toEqual({ id: SERVICE.id, cancelledBookings: 3 });
@@ -392,7 +392,7 @@ describe('Servicio', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .delete(`/services/${SERVICE.id}`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
 
       expect(t.services.retire).not.toHaveBeenCalled();
@@ -401,7 +401,7 @@ describe('Servicio', () => {
     it('answers 404 for an unknown Servicio', async () => {
       t.services.findById.mockResolvedValue(null);
 
-      await t.http.delete('/services/999').set(bearer(SESSION_ID)).expect(404);
+      await t.http.delete('/services/999').set(bearer(CLERK_TOKEN)).expect(404);
     });
   });
 
@@ -423,7 +423,7 @@ describe('Servicio', () => {
 
       const res = await t.http
         .post(`/services/${SERVICE.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
         .expect(201);
 
@@ -444,7 +444,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
         .expect(409);
     });
@@ -457,7 +457,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
         .expect(422);
 
@@ -472,7 +472,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
         .expect(422);
 
@@ -489,7 +489,7 @@ describe('Servicio', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
         .expect(403);
 
@@ -501,7 +501,7 @@ describe('Servicio', () => {
 
       await t.http
         .post('/services/999/employees')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
         .expect(404);
     });
@@ -511,7 +511,7 @@ describe('Servicio', () => {
 
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ employeeId: 999 })
         .expect(404);
 
@@ -536,7 +536,7 @@ describe('Servicio', () => {
     it('takes the Empleado off the Servicio, for the Dueño', async () => {
       const res = await t.http
         .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(t.services.removeEmployee).toHaveBeenCalledWith(
@@ -555,7 +555,7 @@ describe('Servicio', () => {
 
       const res = await t.http
         .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(res.body).toEqual({ cancelledBookings: 2 });
@@ -566,7 +566,7 @@ describe('Servicio', () => {
 
       await t.http
         .delete(`/services/${SERVICE.id}/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(422);
 
       expect(t.services.removeEmployee).not.toHaveBeenCalled();
@@ -581,7 +581,7 @@ describe('Servicio', () => {
 
       await t.http
         .delete(`/services/${SERVICE.id}/employees/${ANAS_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(t.services.removeEmployee).toHaveBeenCalledWith(
@@ -600,7 +600,7 @@ describe('Servicio', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
 
       expect(t.services.removeEmployee).not.toHaveBeenCalled();
@@ -611,7 +611,7 @@ describe('Servicio', () => {
 
       await t.http
         .delete(`/services/999/employees/${UNVERIFIED_EMPLOYEE.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(404);
     });
 
@@ -620,7 +620,7 @@ describe('Servicio', () => {
 
       await t.http
         .delete(`/services/${SERVICE.id}/employees/999`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .expect(404);
 
       expect(t.services.removeEmployee).not.toHaveBeenCalled();

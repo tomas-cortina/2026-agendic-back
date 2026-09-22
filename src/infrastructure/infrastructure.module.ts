@@ -6,8 +6,7 @@ import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
-import { SESSIONS_REPOSITORY } from '../domain/sessions/sessions.repository';
-import { PASSWORD_HASHER } from '../domain/users/password-hasher';
+import { CLERK_AUTH } from '../domain/users/clerk-auth';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { BookingsModule } from './bookings/bookings.module';
@@ -21,18 +20,15 @@ import { NodemailerMailer } from './nodemailer-mailer';
 import { PrismaService } from './prisma.service';
 import { PrismaServicesRepository } from './services/prisma-services.repository';
 import { ServicesModule } from './services/services.module';
-import { PrismaSessionsRepository } from './sessions/prisma-sessions.repository';
-import { SessionsModule } from './sessions/sessions.module';
 import { SystemClock } from './system-clock';
+import { ClerkBackendAuth } from './users/clerk-backend-auth';
 import { PrismaUsersRepository } from './users/prisma-users.repository';
-import { ScryptPasswordHasher } from './users/scrypt-password-hasher';
 import { UsersModule } from './users/users.module';
 
 /** Binds every port to its adapter, globally, and wires the REST feature modules. */
 @Global()
 @Module({
   imports: [
-    SessionsModule,
     UsersModule,
     BusinessesModule,
     BranchesModule,
@@ -44,9 +40,8 @@ import { UsersModule } from './users/users.module';
     PrismaService,
     { provide: CLOCK, useClass: SystemClock },
     { provide: MAILER, useClass: NodemailerMailer },
-    { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
+    { provide: CLERK_AUTH, useClass: ClerkBackendAuth },
     { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
-    { provide: SESSIONS_REPOSITORY, useClass: PrismaSessionsRepository },
     { provide: BUSINESSES_REPOSITORY, useClass: PrismaBusinessesRepository },
     { provide: BRANCHES_REPOSITORY, useClass: PrismaBranchesRepository },
     { provide: SERVICES_REPOSITORY, useClass: PrismaServicesRepository },
@@ -56,9 +51,8 @@ import { UsersModule } from './users/users.module';
   exports: [
     CLOCK,
     MAILER,
-    PASSWORD_HASHER,
+    CLERK_AUTH,
     USERS_REPOSITORY,
-    SESSIONS_REPOSITORY,
     BUSINESSES_REPOSITORY,
     BRANCHES_REPOSITORY,
     SERVICES_REPOSITORY,

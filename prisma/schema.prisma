@@ -34,27 +34,14 @@ enum ServiceCategory {
 }
 
 model User {
-  id                         Int       @id @default(autoincrement())
-  name                       String
-  email                      String    @unique
-  pendingEmail               String? // takes effect once verified
-  passwordHash               String
-  role                       Role      @default(USER)
-  emailVerifiedAt            DateTime? @db.Timestamptz(3)
-  verificationCodeHash       String? // sha256 of the code, never the code itself
-  verificationCodeExpiresAt  DateTime? @db.Timestamptz(3)
-  createdAt                  DateTime  @default(now()) @db.Timestamptz(3)
+  id        Int      @id @default(autoincrement())
+  clerkId   String   @unique // Clerk is the identity's system of record; no local credentials
+  name      String
+  email     String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   businesses Business[]
-  sessions   Session[]
-}
-
-model Session {
-  id        String   @id // sha256 of the bearer token, never the token itself
-  userId    Int
-  expiresAt DateTime @db.Timestamptz(3)
-
-  user User @relation(fields: [userId], references: [id])
 }
 
 model Business {

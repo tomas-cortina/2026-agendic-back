@@ -17,6 +17,7 @@ import {
   BusinessesRepository,
 } from './domain/businesses/businesses.repository';
 import { CLOCK, Clock } from './domain/clock';
+import { UnauthenticatedError } from './domain/errors';
 import { Employee } from './domain/employees/employee';
 import {
   EMPLOYEES_REPOSITORY,
@@ -28,14 +29,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from './domain/services/services.repository';
-import {
-  SESSIONS_REPOSITORY,
-  SessionsRepository,
-} from './domain/sessions/sessions.repository';
-import {
-  PASSWORD_HASHER,
-  PasswordHasher,
-} from './domain/users/password-hasher';
+import { CLERK_AUTH, ClerkAuth } from './domain/users/clerk-auth';
 import { Role, User } from './domain/users/user';
 import {
   USERS_REPOSITORY,
@@ -65,24 +59,19 @@ export async function createTestApp() {
   const users: jest.Mocked<UsersRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
+    findByClerkId: jest.fn(),
     findByEmail: jest.fn(),
     update: jest.fn(),
-    setPendingEmail: jest.fn(),
-    issueVerificationCode: jest.fn(),
-    verifyEmail: jest.fn(),
   };
   const mailer: jest.Mocked<Mailer> = {
     sendVerificationLink: jest.fn(),
     sendVerificationCode: jest.fn(),
   };
-  const sessions: jest.Mocked<SessionsRepository> = {
-    create: jest.fn(),
-    findById: jest.fn(),
-    delete: jest.fn(),
-  };
-  const passwordHasher: jest.Mocked<PasswordHasher> = {
-    hash: jest.fn(),
-    verify: jest.fn(),
+  const clerkAuth: jest.Mocked<ClerkAuth> = {
+    verifyToken: jest.fn<Promise<string>, [string | undefined]>(async () => {
+      throw new UnauthenticatedError('Missing or invalid Clerk token');
+    }),
+    getProfile: jest.fn(),
   };
   const businesses: jest.Mocked<BusinessesRepository> = {
     create: jest.fn(),
@@ -128,10 +117,8 @@ export async function createTestApp() {
     .useValue(clock)
     .overrideProvider(USERS_REPOSITORY)
     .useValue(users)
-    .overrideProvider(SESSIONS_REPOSITORY)
-    .useValue(sessions)
-    .overrideProvider(PASSWORD_HASHER)
-    .useValue(passwordHasher)
+    .overrideProvider(CLERK_AUTH)
+    .useValue(clerkAuth)
     .overrideProvider(MAILER)
     .useValue(mailer)
     .overrideProvider(BUSINESSES_REPOSITORY)
@@ -151,8 +138,7 @@ export async function createTestApp() {
     app,
     clock,
     users,
-    sessions,
-    passwordHasher,
+    clerkAuth,
     mailer,
     businesses,
     branches,
@@ -167,29 +153,19 @@ export type TestApp = Awaited<ReturnType<typeof createTestApp>>;
 
 export const ANA: User = {
   id: 1,
+  clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
-  pendingEmail: null,
-  passwordHash: 'stored-hash',
   role: Role.USER,
-  emailVerifiedAt: new Date('2025-12-01T00:00:00.000Z'),
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
-};
-
-export const VALID_SIGN_UP = {
-  name: 'Ana Pérez',
-  email: 'ana@example.com',
-  password: 'correct-horse-battery',
 };
 
 export const BRUNO: User = {
   id: 2,
+  clerkId: 'user_clerk_bruno',
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
-  pendingEmail: null,
-  passwordHash: 'stored-hash',
   role: Role.USER,
-  emailVerifiedAt: new Date('2025-12-01T00:00:00.000Z'),
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -232,31 +208,33 @@ export const ANAS_SERVICE: Service = {
   employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };
 
-export const SESSION_ID = 'session-1';
-export const OTHER_SESSION_ID = 'session-2';
+export const CLERK_TOKEN = 'clerk-jwt-1';
+export const OTHER_CLERK_TOKEN = 'clerk-jwt-2';
 
-/** Makes `bearer(SESSION_ID)` a Sesión of Ana's, issued at the Clock's now. */
-export function scriptSession({ clock, sessions }: TestApp) {
-  const expiresAt = new Date(clock.now().getTime() + 30 * DAY_MS);
-  const findById = sessions.findById.getMockImplementation();
-  sessions.findById.mockImplementation(async (id) =>
-    id === SESSION_ID
-      ? { id: SESSION_ID, userId: ANA.id, expiresAt }
-      : (findById?.(id) ?? null),
+/** Makes `bearer(CLERK_TOKEN)` resolve to Ana, an already-known local User. */
+export function scriptSession({ clerkAuth, users }: TestApp) {
+  const verifyToken = clerkAuth.verifyToken.getMockImplementation()!;
+  clerkAuth.verifyToken.mockImplementation(async (token) =>
+    token === CLERK_TOKEN ? ANA.clerkId : verifyToken(token),
+  );
+  const findByClerkId = users.findByClerkId.getMockImplementation();
+  users.findByClerkId.mockImplementation(async (clerkId) =>
+    clerkId === ANA.clerkId ? ANA : (findByClerkId?.(clerkId) ?? null),
   );
 }
 
-/** Makes `bearer(OTHER_SESSION_ID)` a Sesión of Bruno's, alongside Ana's from scriptSession. */
-export function scriptOtherSession({ clock, sessions }: TestApp) {
-  const expiresAt = new Date(clock.now().getTime() + 30 * DAY_MS);
-  const findById = sessions.findById.getMockImplementation();
-  sessions.findById.mockImplementation(async (id) =>
-    id === OTHER_SESSION_ID
-      ? { id: OTHER_SESSION_ID, userId: BRUNO.id, expiresAt }
-      : (findById?.(id) ?? null),
+/** Makes `bearer(OTHER_CLERK_TOKEN)` resolve to Bruno, alongside Ana's from scriptSession. */
+export function scriptOtherSession({ clerkAuth, users }: TestApp) {
+  const verifyToken = clerkAuth.verifyToken.getMockImplementation()!;
+  clerkAuth.verifyToken.mockImplementation(async (token) =>
+    token === OTHER_CLERK_TOKEN ? BRUNO.clerkId : verifyToken(token),
+  );
+  const findByClerkId = users.findByClerkId.getMockImplementation();
+  users.findByClerkId.mockImplementation(async (clerkId) =>
+    clerkId === BRUNO.clerkId ? BRUNO : (findByClerkId?.(clerkId) ?? null),
   );
 }
 
-export const bearer = (sessionId: string) => ({
-  Authorization: `Bearer ${sessionId}`,
+export const bearer = (token: string) => ({
+  Authorization: `Bearer ${token}`,
 });

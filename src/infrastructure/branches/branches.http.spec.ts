@@ -2,10 +2,10 @@ import {
   ANAS_BUSINESS,
   bearer,
   createTestApp,
-  OTHER_SESSION_ID,
+  OTHER_CLERK_TOKEN,
   scriptOtherSession,
   scriptSession,
-  SESSION_ID,
+  CLERK_TOKEN,
   TestApp,
 } from '../../test-app';
 
@@ -40,7 +40,7 @@ describe('Sucursal', () => {
 
       const res = await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_BRANCH)
         .expect(201);
 
@@ -61,7 +61,7 @@ describe('Sucursal', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send(VALID_BRANCH)
         .expect(403);
 
@@ -73,7 +73,7 @@ describe('Sucursal', () => {
 
       await t.http
         .post('/businesses/999/branches')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(VALID_BRANCH)
         .expect(404);
     });
@@ -90,7 +90,7 @@ describe('Sucursal', () => {
     ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_BRANCH, ...override })
         .expect(400);
 
@@ -100,7 +100,7 @@ describe('Sucursal', () => {
     it('answers 422 when closesAt is not after opensAt', async () => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_BRANCH, opensAt: '18:00', closesAt: '09:00' })
         .expect(422);
 
@@ -110,7 +110,7 @@ describe('Sucursal', () => {
     it('answers 422 when closesAt equals opensAt', async () => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ ...VALID_BRANCH, opensAt: '09:00', closesAt: '09:00' })
         .expect(422);
     });
@@ -129,7 +129,7 @@ describe('Sucursal', () => {
 
       const res = await t.http
         .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'New name' })
         .expect(200);
 
@@ -149,7 +149,7 @@ describe('Sucursal', () => {
     it('answers 403 for another Usuario', async () => {
       await t.http
         .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(OTHER_SESSION_ID))
+        .set(bearer(OTHER_CLERK_TOKEN))
         .send({ name: 'New name' })
         .expect(403);
 
@@ -161,7 +161,7 @@ describe('Sucursal', () => {
 
       await t.http
         .patch('/branches/999')
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ name: 'New name' })
         .expect(404);
     });
@@ -173,7 +173,7 @@ describe('Sucursal', () => {
     ])('rejects %s with 400, without reaching the repository', async (_, body) => {
       await t.http
         .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send(body)
         .expect(400);
 
@@ -183,7 +183,7 @@ describe('Sucursal', () => {
     it('answers 422 when editing only opensAt crosses the existing closesAt', async () => {
       await t.http
         .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ opensAt: '19:00' })
         .expect(422);
 
@@ -199,7 +199,7 @@ describe('Sucursal', () => {
 
       await t.http
         .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(SESSION_ID))
+        .set(bearer(CLERK_TOKEN))
         .send({ opensAt: '10:00', closesAt: '20:00' })
         .expect(200);
     });

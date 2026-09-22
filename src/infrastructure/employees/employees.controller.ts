@@ -17,8 +17,7 @@ import { ResendEmployeeVerificationUseCase } from '../../application/employees/r
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { UpdateEmployeeUseCase } from '../../application/employees/update-employee.use-case';
 import { VerifyEmployeeUseCase } from '../../application/employees/verify-employee.use-case';
-import { Session } from '../../domain/sessions/session';
-import { CurrentSession, SessionGuard } from '../sessions/session.guard';
+import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentEmployee } from './employee.presenter';
 import {
   CreateEmployeeDto,
@@ -38,14 +37,14 @@ export class EmployeesController {
   ) {}
 
   @Post('businesses/:id/employees')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async create(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) businessId: number,
     @Body() dto: CreateEmployeeDto,
   ) {
     return presentEmployee(
-      await this.addEmployeeUseCase.execute(session.userId, businessId, dto),
+      await this.addEmployeeUseCase.execute(userId, businessId, dto),
     );
   }
 
@@ -57,46 +56,43 @@ export class EmployeesController {
 
   @Post('employees/:id/verification/resend')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async resend(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    await this.resendEmployeeVerificationUseCase.execute(session.userId, id);
+    await this.resendEmployeeVerificationUseCase.execute(userId, id);
   }
 
   @Patch('employees/:id')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async update(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEmployeeDto,
   ) {
     return presentEmployee(
-      await this.updateEmployeeUseCase.execute(session.userId, id, dto.name),
+      await this.updateEmployeeUseCase.execute(userId, id, dto.name),
     );
   }
 
   @Delete('employees/:id')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async retire(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.retireEmployeeUseCase.execute(session.userId, id);
+    return this.retireEmployeeUseCase.execute(userId, id);
   }
 
   @Get('businesses/:id/employees')
-  @UseGuards(SessionGuard)
+  @UseGuards(ClerkGuard)
   async list(
-    @CurrentSession() session: Session,
+    @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) businessId: number,
   ) {
     return (
-      await this.listEmployeesByBusinessUseCase.execute(
-        session.userId,
-        businessId,
-      )
+      await this.listEmployeesByBusinessUseCase.execute(userId, businessId)
     ).map(presentEmployee);
   }
 }

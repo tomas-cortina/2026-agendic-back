@@ -5,22 +5,13 @@ export enum Role {
 
 export interface User {
   id: number;
+  clerkId: string;
   name: string;
   email: string;
-  pendingEmail: string | null;
-  passwordHash: string;
   role: Role;
-  emailVerifiedAt: Date | null;
   createdAt: Date;
-}
-
-export interface SignUpInput {
-  name: string;
-  email: string;
-  password: string;
 }
 
 export interface UpdateMeInput {
   name?: string;
-  email?: string;
 }

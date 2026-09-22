@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
 import { VerifyBookingUseCase } from '../../application/bookings/verify-booking.use-case';
-import { SessionsModule } from '../sessions/sessions.module';
+import { UsersModule } from '../users/users.module';
 import { BookingsController } from './bookings.controller';
 
 @Module({
-  imports: [SessionsModule],
+  imports: [UsersModule],
   controllers: [BookingsController],
   providers: [
     CreateBookingUseCase,

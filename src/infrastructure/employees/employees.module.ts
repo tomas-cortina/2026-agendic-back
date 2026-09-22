@@ -5,11 +5,11 @@ import { ResendEmployeeVerificationUseCase } from '../../application/employees/r
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { UpdateEmployeeUseCase } from '../../application/employees/update-employee.use-case';
 import { VerifyEmployeeUseCase } from '../../application/employees/verify-employee.use-case';
-import { SessionsModule } from '../sessions/sessions.module';
+import { UsersModule } from '../users/users.module';
 import { EmployeesController } from './employees.controller';
 
 @Module({
-  imports: [SessionsModule],
+  imports: [UsersModule],
   controllers: [EmployeesController],
   providers: [
     AddEmployeeUseCase,
