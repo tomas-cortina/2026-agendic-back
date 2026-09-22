@@ -8,6 +8,7 @@ import {
 } from '../../domain/businesses/businesses.repository';
 import { CLOCK, Clock } from '../../domain/clock';
 import { NotFoundError } from '../../domain/errors';
+import { CLERK_AUTH, ClerkAuth } from '../../domain/users/clerk-auth';
 import {
   USERS_REPOSITORY,
   UsersRepository,
@@ -19,6 +20,7 @@ export class CreateBusinessUseCase {
     @Inject(BUSINESSES_REPOSITORY)
     private readonly businesses: BusinessesRepository,
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
+    @Inject(CLERK_AUTH) private readonly clerkAuth: ClerkAuth,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -29,8 +31,14 @@ export class CreateBusinessUseCase {
     assertValidHours(input.branch.opensAt, input.branch.closesAt);
     const owner = await this.users.findById(ownerId);
     if (!owner) throw new NotFoundError('User not found');
+    // ponytail: if businesses.create fails after this, the Organization is orphaned in Clerk with no local
+    // Business to retry against; add compensation (delete the org) or a reconcile job if that starts happening.
+    const clerkOrgId = await this.clerkAuth.createOrganization(
+      input.business.name,
+      owner.clerkId,
+    );
     return this.businesses.create({
-      business: { ...input.business, ownerId },
+      business: { ...input.business, ownerId, clerkOrgId },
       branch: input.branch,
       service: {
         ...input.service,

@@ -10,4 +10,6 @@ export interface ClerkAuth {
   verifyToken(token: string | undefined): Promise<string>;
   /** Fetches the profile Clerk holds for a user id, to seed a local User on its first sight. */
   getProfile(clerkId: string): Promise<ClerkProfile>;
+  /** Creates the Organization backing a new Business, with its Dueño as admin. Returns the Organization's id. */
+  createOrganization(name: string, clerkId: string): Promise<string>;
 }

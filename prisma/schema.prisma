@@ -49,6 +49,7 @@ model Business {
   name        String
   description String
   ownerId     Int
+  clerkOrgId  String @unique
 
   owner     User       @relation(fields: [ownerId], references: [id])
   branches  Branch[]

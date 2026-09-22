@@ -39,6 +39,14 @@ const VALID_BODY = {
   service: SERVICE_PART,
 };
 
+/** What the API presents for a Negocio: no `clerkOrgId`, an internal identifier the front never sees. */
+const PRESENTED_BUSINESS = {
+  id: ANAS_BUSINESS.id,
+  name: ANAS_BUSINESS.name,
+  description: ANAS_BUSINESS.description,
+  ownerId: ANAS_BUSINESS.ownerId,
+};
+
 const ANAS_SERVICE = {
   id: 1,
   branchId: ANAS_BRANCH.id,
@@ -64,6 +72,9 @@ describe('Negocio', () => {
     beforeEach(() => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);
+      t.clerkAuth.createOrganization.mockResolvedValue(
+        ANAS_BUSINESS.clerkOrgId,
+      );
     });
 
     it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado', async () => {
@@ -75,8 +86,16 @@ describe('Negocio', () => {
         .send(VALID_BODY)
         .expect(201);
 
+      expect(t.clerkAuth.createOrganization).toHaveBeenCalledWith(
+        BUSINESS_PART.name,
+        ANA.clerkId,
+      );
       expect(t.businesses.create).toHaveBeenCalledWith({
-        business: { ...BUSINESS_PART, ownerId: ANA.id },
+        business: {
+          ...BUSINESS_PART,
+          ownerId: ANA.id,
+          clerkOrgId: ANAS_BUSINESS.clerkOrgId,
+        },
         branch: BRANCH_PART,
         service: SERVICE_PART,
         employee: {
@@ -86,7 +105,7 @@ describe('Negocio', () => {
         },
       });
       expect(res.body).toEqual({
-        business: ANAS_BUSINESS,
+        business: PRESENTED_BUSINESS,
         branch: ANAS_BRANCH,
         service: {
           id: ANAS_SERVICE.id,
@@ -276,7 +295,7 @@ describe('Negocio', () => {
 
       const res = await t.http.get('/businesses').expect(200);
 
-      expect(res.body).toEqual([ANAS_BUSINESS]);
+      expect(res.body).toEqual([PRESENTED_BUSINESS]);
     });
   });
 
@@ -288,7 +307,7 @@ describe('Negocio', () => {
         .get(`/businesses/${ANAS_BUSINESS.id}`)
         .expect(200);
 
-      expect(res.body).toEqual(ANAS_BUSINESS);
+      expect(res.body).toEqual(PRESENTED_BUSINESS);
     });
 
     it('answers 404 for an unknown Negocio', async () => {

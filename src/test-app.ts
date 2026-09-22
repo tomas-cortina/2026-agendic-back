@@ -72,6 +72,7 @@ export async function createTestApp() {
       throw new UnauthenticatedError('Missing or invalid Clerk token');
     }),
     getProfile: jest.fn(),
+    createOrganization: jest.fn(),
   };
   const businesses: jest.Mocked<BusinessesRepository> = {
     create: jest.fn(),
@@ -174,6 +175,7 @@ export const ANAS_BUSINESS: Business = {
   name: "Ana's Salon",
   description: 'Hair and nails',
   ownerId: ANA.id,
+  clerkOrgId: 'org_clerk_anas_salon',
 };
 
 export const ANAS_BRANCH: Branch = {

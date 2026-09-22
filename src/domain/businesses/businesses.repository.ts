@@ -7,7 +7,7 @@ export const BUSINESSES_REPOSITORY = Symbol('BusinessesRepository');
 
 /** Everything a Negocio needs to take Turnos, written at once. */
 export interface CreateBusinessData {
-  business: Pick<Business, 'name' | 'description' | 'ownerId'>;
+  business: Pick<Business, 'name' | 'description' | 'ownerId' | 'clerkOrgId'>;
   branch: Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt'>;
   service: Pick<
     Service,

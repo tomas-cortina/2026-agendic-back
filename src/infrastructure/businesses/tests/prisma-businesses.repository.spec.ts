@@ -14,6 +14,7 @@ const ANAS_BUSINESS: Business = {
   name: "Ana's Salon",
   description: 'Hair and nails',
   ownerId: 1,
+  clerkOrgId: 'org_clerk_anas_salon',
 };
 
 const knownError = (code: string) =>
@@ -57,6 +58,7 @@ const CREATE_DATA = {
     name: ANAS_BUSINESS.name,
     description: ANAS_BUSINESS.description,
     ownerId: ANAS_BUSINESS.ownerId,
+    clerkOrgId: ANAS_BUSINESS.clerkOrgId,
   },
   branch: {
     name: 'Downtown',

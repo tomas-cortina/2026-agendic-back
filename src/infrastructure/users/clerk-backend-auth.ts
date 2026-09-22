@@ -39,4 +39,13 @@ export class ClerkBackendAuth implements ClerkAuth {
         .trim() || email;
     return { name, email };
   }
+
+  async createOrganization(name: string, clerkId: string) {
+    const organization =
+      await this.clerkClient.organizations.createOrganization({
+        name,
+        createdBy: clerkId,
+      });
+    return organization.id;
+  }
 }

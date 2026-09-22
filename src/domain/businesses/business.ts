@@ -6,6 +6,8 @@ export interface Business {
   name: string;
   description: string;
   ownerId: number;
+  /** The Clerk Organization this Business is mapped to 1:1, with the Dueño as its admin. */
+  clerkOrgId: string;
 }
 
 /** A Negocio is created complete: it, its first Sucursal, its first Servicio and the Dueño as its Empleado. */

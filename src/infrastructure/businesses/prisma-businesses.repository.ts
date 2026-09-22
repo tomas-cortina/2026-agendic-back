@@ -90,6 +90,7 @@ const toBusiness = (row: BusinessRow): Business => ({
   name: row.name,
   description: row.description,
   ownerId: row.ownerId,
+  clerkOrgId: row.clerkOrgId,
 });
 
 /** Business has no unique index of its own; a P2002 here comes from the Service or Employee written alongside it. */
