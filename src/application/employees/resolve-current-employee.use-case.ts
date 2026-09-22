@@ -3,7 +3,6 @@ import {
   BUSINESSES_REPOSITORY,
   BusinessesRepository,
 } from '../../domain/businesses/businesses.repository';
-import { CLOCK, Clock } from '../../domain/clock';
 import { Employee } from '../../domain/employees/employee';
 import {
   EMPLOYEES_REPOSITORY,
@@ -24,7 +23,6 @@ export class ResolveCurrentEmployeeUseCase {
     private readonly employees: EmployeesRepository,
     @Inject(BUSINESSES_REPOSITORY)
     private readonly businesses: BusinessesRepository,
-    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async execute(token: string | undefined): Promise<Employee> {
@@ -42,7 +40,6 @@ export class ResolveCurrentEmployeeUseCase {
       businessId: business.id,
       clerkId,
       ...profile,
-      emailVerifiedAt: this.clock.now(),
     });
   }
 }

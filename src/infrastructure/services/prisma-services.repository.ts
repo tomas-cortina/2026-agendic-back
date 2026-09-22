@@ -14,10 +14,10 @@ import {
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
 
-/** Only the Empleados anyone browsing may see attending a Servicio: verified and not dados de baja. */
+/** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. */
 export const VISIBLE_EMPLOYEES = {
   employees: {
-    where: { emailVerifiedAt: { not: null }, retiredAt: null },
+    where: { retiredAt: null },
     select: { id: true, name: true },
   },
 } satisfies Prisma.ServiceInclude;

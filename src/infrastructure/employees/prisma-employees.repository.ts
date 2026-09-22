@@ -7,17 +7,11 @@ import {
 import {
   ConflictError,
   DatabaseOperationError,
-  ExpiredError,
-  InvalidCodeError,
   NotFoundError,
 } from '../../domain/errors';
 import { Employee as EmployeeRow, Prisma } from '../../generated/prisma/client';
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
-import {
-  generateVerificationCode,
-  hashVerificationCode,
-} from '../verification-code';
 
 @Injectable()
 export class PrismaEmployeesRepository implements EmployeesRepository {
@@ -83,44 +77,6 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
       })
       .catch(translateError);
   }
-
-  async issueVerificationCode(employeeId: number, expiresAt: Date) {
-    const code = generateVerificationCode();
-    await this.prisma.employee
-      .update({
-        where: { id: employeeId },
-        data: {
-          verificationCodeHash: hashVerificationCode(code),
-          verificationCodeExpiresAt: expiresAt,
-        },
-      })
-      .catch(translateError);
-    return code;
-  }
-
-  async verifyEmail(email: string, code: string, now: Date) {
-    const row = await this.prisma.employee
-      .findFirst({
-        where: { email, verificationCodeHash: hashVerificationCode(code) },
-      })
-      .catch(translateError);
-    if (!row || !row.verificationCodeExpiresAt)
-      throw new InvalidCodeError('Unknown or already used verification code');
-    if (row.verificationCodeExpiresAt <= now)
-      throw new ExpiredError('Verification code expired');
-    return toEmployee(
-      await this.prisma.employee
-        .update({
-          where: { id: row.id },
-          data: {
-            emailVerifiedAt: now,
-            verificationCodeHash: null,
-            verificationCodeExpiresAt: null,
-          },
-        })
-        .catch(translateError),
-    );
-  }
 }
 
 export const toEmployee = (row: EmployeeRow): Employee => ({
@@ -129,7 +85,6 @@ export const toEmployee = (row: EmployeeRow): Employee => ({
   clerkId: row.clerkId,
   name: row.name,
   email: row.email,
-  emailVerifiedAt: row.emailVerifiedAt,
   retiredAt: row.retiredAt,
 });
 

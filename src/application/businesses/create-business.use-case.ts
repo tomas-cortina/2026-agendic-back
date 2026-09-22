@@ -6,7 +6,6 @@ import {
   BusinessesRepository,
   CreatedBusiness,
 } from '../../domain/businesses/businesses.repository';
-import { CLOCK, Clock } from '../../domain/clock';
 import { NotFoundError } from '../../domain/errors';
 import { CLERK_AUTH, ClerkAuth } from '../../domain/users/clerk-auth';
 import {
@@ -21,7 +20,6 @@ export class CreateBusinessUseCase {
     private readonly businesses: BusinessesRepository,
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
     @Inject(CLERK_AUTH) private readonly clerkAuth: ClerkAuth,
-    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async execute(
@@ -44,12 +42,10 @@ export class CreateBusinessUseCase {
         ...input.service,
         description: input.service.description ?? null,
       },
-      // Verified unconditionally: a Usuario's email is always Clerk-verified.
       employee: {
         clerkId: owner.clerkId,
         name: owner.name,
         email: owner.email,
-        emailVerifiedAt: this.clock.now(),
       },
     });
   }

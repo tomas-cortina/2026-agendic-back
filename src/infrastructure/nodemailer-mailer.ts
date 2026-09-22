@@ -23,13 +23,4 @@ export class NodemailerMailer implements Mailer {
       html: `<p>Click <a href="${link}">here</a> to verify your account.</p>`,
     });
   }
-
-  async sendVerificationCode(email: string, code: string) {
-    await this.transporter.sendMail({
-      from: process.env.SMTP_FROM,
-      to: email,
-      subject: 'Your verification code',
-      html: `<p>Your verification code is <strong>${code}</strong>.</p>`,
-    });
-  }
 }

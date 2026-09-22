@@ -18,7 +18,7 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { assertBranchOwner } from '../branches/assert-branch-owner';
-import { isLastVerifiedEmployee } from './is-last-verified-employee';
+import { isLastEmployee } from './is-last-employee';
 
 @Injectable()
 export class RemoveEmployeeUseCase {
@@ -49,9 +49,9 @@ export class RemoveEmployeeUseCase {
     );
     const employee = await this.employees.findById(employeeId);
     if (!employee) throw new NotFoundError('Employee not found');
-    if (isLastVerifiedEmployee(service, employeeId))
+    if (isLastEmployee(service, employeeId))
       throw new BusinessRuleError(
-        "Cannot remove the Service's last verified Employee",
+        "Cannot remove the Service's last Employee",
       );
     const { cancelledBookings } = await this.services.removeEmployee(
       serviceId,

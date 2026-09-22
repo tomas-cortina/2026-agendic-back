@@ -1,20 +1,8 @@
-import {
-  IsName,
-  IsNormalizedEmail,
-  IsVerificationCode,
-} from '../users/users.dto';
+import { IsName, IsNormalizedEmail } from '../users/users.dto';
 
 export class CreateEmployeeDto {
   @IsNormalizedEmail()
   email!: string;
-}
-
-export class VerifyEmployeeDto {
-  @IsNormalizedEmail()
-  email!: string;
-
-  @IsVerificationCode()
-  code!: string;
 }
 
 export class UpdateEmployeeDto {

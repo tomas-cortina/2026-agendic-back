@@ -1,7 +1,7 @@
 import { Service } from '../../domain/services/service';
 
 /** Servicios dados de baja don't count for this rule. */
-export function isLastVerifiedEmployee(
+export function isLastEmployee(
   service: Service,
   employeeId: number,
 ): boolean {

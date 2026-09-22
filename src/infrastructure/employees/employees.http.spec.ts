@@ -1,9 +1,4 @@
-import {
-  DatabaseOperationError,
-  ExpiredError,
-  InvalidCodeError,
-  UnauthenticatedError,
-} from '../../domain/errors';
+import { DatabaseOperationError, UnauthenticatedError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
   ANA,
@@ -19,13 +14,12 @@ import {
   TestApp,
 } from '../../test-app';
 
-const PENDING_EMPLOYEE = {
+const OTHER_EMPLOYEE = {
   id: 2,
   businessId: ANAS_BUSINESS.id,
   clerkId: 'user_clerk_bruno_the_employee',
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
-  emailVerifiedAt: null,
   retiredAt: null,
 };
 
@@ -123,7 +117,6 @@ describe('Empleado', () => {
         id: ANAS_EMPLOYEE.id,
         name: ANAS_EMPLOYEE.name,
         email: ANAS_EMPLOYEE.email,
-        verified: true,
       });
     });
 
@@ -139,9 +132,8 @@ describe('Empleado', () => {
         email: 'bruno@example.com',
       });
       const created = {
-        ...PENDING_EMPLOYEE,
+        ...OTHER_EMPLOYEE,
         clerkId: 'user_clerk_new_employee',
-        emailVerifiedAt: t.clock.now(),
       };
       t.employees.create.mockResolvedValue(created);
       t.employees.findById.mockResolvedValue(created);
@@ -156,9 +148,8 @@ describe('Empleado', () => {
         clerkId: 'user_clerk_new_employee',
         name: 'Bruno Díaz',
         email: 'bruno@example.com',
-        emailVerifiedAt: t.clock.now(),
       });
-      expect(res.body).toMatchObject({ name: 'Bruno Díaz', verified: true });
+      expect(res.body).toMatchObject({ name: 'Bruno Díaz' });
     });
 
     it('answers 401 when the token carries no active Organization and no Empleado exists yet', async () => {
@@ -193,107 +184,6 @@ describe('Empleado', () => {
     });
   });
 
-  describe('POST /employees/verification', () => {
-    it('verifies the Empleado and answers 204', async () => {
-      t.employees.verifyEmail.mockResolvedValue({
-        ...PENDING_EMPLOYEE,
-        emailVerifiedAt: t.clock.now(),
-      });
-
-      await t.http
-        .post('/employees/verification')
-        .send({ email: 'bruno@example.com', code: 'abcdef' })
-        .expect(204);
-
-      expect(t.employees.verifyEmail).toHaveBeenCalledWith(
-        'bruno@example.com',
-        'ABCDEF',
-        new Date('2026-01-01T12:00:00.000Z'),
-      );
-    });
-
-    it('answers 400 for an unknown or already used code', async () => {
-      t.employees.verifyEmail.mockRejectedValue(
-        new InvalidCodeError('Unknown or already used verification code'),
-      );
-
-      await t.http
-        .post('/employees/verification')
-        .send({ email: 'bruno@example.com', code: 'ABCDEF' })
-        .expect(400);
-    });
-
-    it('answers 410 for an expired code', async () => {
-      t.employees.verifyEmail.mockRejectedValue(
-        new ExpiredError('Verification code expired'),
-      );
-
-      await t.http
-        .post('/employees/verification')
-        .send({ email: 'bruno@example.com', code: 'ABCDEF' })
-        .expect(410);
-    });
-
-    it('rejects a missing email or code with 400', async () => {
-      await t.http.post('/employees/verification').send({}).expect(400);
-      expect(t.employees.verifyEmail).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('POST /employees/:id/verification/resend', () => {
-    beforeEach(() => {
-      scriptSession(t);
-      t.employees.findById.mockResolvedValue(PENDING_EMPLOYEE);
-      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
-    });
-
-    it('sends a fresh code, invalidating the previous one, and answers 204', async () => {
-      t.employees.issueVerificationCode.mockResolvedValue('FRESHC');
-
-      await t.http
-        .post(`/employees/${PENDING_EMPLOYEE.id}/verification/resend`)
-        .set(bearer(CLERK_TOKEN))
-        .expect(204);
-
-      expect(t.employees.issueVerificationCode).toHaveBeenCalledWith(
-        PENDING_EMPLOYEE.id,
-        new Date('2026-01-02T12:00:00.000Z'),
-      );
-      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
-        PENDING_EMPLOYEE.email,
-        'FRESHC',
-      );
-    });
-
-    it('answers 422 for an already verified Empleado', async () => {
-      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
-
-      await t.http
-        .post(`/employees/${ANAS_EMPLOYEE.id}/verification/resend`)
-        .set(bearer(CLERK_TOKEN))
-        .expect(422);
-      expect(t.mailer.sendVerificationCode).not.toHaveBeenCalled();
-    });
-
-    it('answers 403 for a session that is not the Dueño', async () => {
-      scriptOtherSession(t);
-
-      await t.http
-        .post(`/employees/${PENDING_EMPLOYEE.id}/verification/resend`)
-        .set(bearer(OTHER_CLERK_TOKEN))
-        .expect(403);
-    });
-
-    it('answers 404 for an unknown Employee', async () => {
-      t.employees.findById.mockResolvedValue(null);
-
-      await t.http
-        .post('/employees/999/verification/resend')
-        .set(bearer(CLERK_TOKEN))
-        .expect(404);
-    });
-  });
-
   describe('PATCH /employees/:id', () => {
     beforeEach(() => {
       scriptSession(t);
@@ -320,7 +210,6 @@ describe('Empleado', () => {
         id: ANAS_EMPLOYEE.id,
         name: 'Ana María',
         email: ANAS_EMPLOYEE.email,
-        verified: true,
       });
     });
 
@@ -403,7 +292,7 @@ describe('Empleado', () => {
       expect(res.body).toEqual({ cancelledBookings: 5 });
     });
 
-    it("answers 422 and changes nothing when they're the last verified Empleado of a Servicio not dado de baja", async () => {
+    it("answers 422 and changes nothing when they're the last Empleado of a Servicio not dado de baja", async () => {
       t.services.listActiveByEmployee.mockResolvedValue([
         {
           id: 1,
@@ -426,7 +315,7 @@ describe('Empleado', () => {
       expect(t.employees.retire).not.toHaveBeenCalled();
     });
 
-    it('gives them de baja when other Servicios have another verified Empleado', async () => {
+    it('gives them de baja when other Servicios have another Empleado', async () => {
       t.services.listActiveByEmployee.mockResolvedValue([
         {
           id: 1,
@@ -478,10 +367,10 @@ describe('Empleado', () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
     });
 
-    it('lists the Business Employees not dados de baja as { id, name, email, verified }', async () => {
+    it('lists the Business Employees not dados de baja as { id, name, email }', async () => {
       t.employees.listActiveByBusiness.mockResolvedValue([
         ANAS_EMPLOYEE,
-        PENDING_EMPLOYEE,
+        OTHER_EMPLOYEE,
       ]);
 
       const res = await t.http
@@ -494,13 +383,11 @@ describe('Empleado', () => {
           id: ANAS_EMPLOYEE.id,
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
-          verified: true,
         },
         {
-          id: PENDING_EMPLOYEE.id,
-          name: PENDING_EMPLOYEE.name,
-          email: PENDING_EMPLOYEE.email,
-          verified: false,
+          id: OTHER_EMPLOYEE.id,
+          name: OTHER_EMPLOYEE.name,
+          email: OTHER_EMPLOYEE.email,
         },
       ]);
       expect(t.employees.listActiveByBusiness).toHaveBeenCalledWith(

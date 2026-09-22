@@ -103,13 +103,7 @@ describe('PrismaServicesRepository', () => {
     ]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
       where: { branchId: 1, retiredAt: null },
-      // Of the Employees in charge, only the verified ones not retired, and never their email.
-      include: {
-        employees: {
-          where: { emailVerifiedAt: { not: null }, retiredAt: null },
-          select: { id: true, name: true },
-        },
-      },
+      include: VISIBLE_EMPLOYEES,
     });
   });
 

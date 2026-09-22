@@ -2,13 +2,10 @@ import { Employee } from '../../../domain/employees/employee';
 import {
   ConflictError,
   DatabaseOperationError,
-  ExpiredError,
-  InvalidCodeError,
   NotFoundError,
 } from '../../../domain/errors';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
-import { CODE_PATTERN, hashVerificationCode } from '../../verification-code';
 import { PrismaEmployeesRepository } from '../prisma-employees.repository';
 
 const EMPLOYEE: Employee = {
@@ -17,12 +14,8 @@ const EMPLOYEE: Employee = {
   clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
-  emailVerifiedAt: new Date('2026-01-01T12:00:00.000Z'),
   retiredAt: null,
 };
-
-const EXPIRES_AT = new Date('2026-01-02T12:00:00.000Z');
-const NOW = new Date('2026-01-01T12:00:00.000Z');
 
 const knownError = (code: string) =>
   new Prisma.PrismaClientKnownRequestError('vendor message', {
@@ -72,22 +65,15 @@ describe('PrismaEmployeesRepository', () => {
   });
 
   it('creates an Employee and returns only its domain fields', async () => {
-    prisma.employee.create.mockResolvedValue({
-      ...EMPLOYEE,
-      emailVerifiedAt: null,
-    });
+    prisma.employee.create.mockResolvedValue(EMPLOYEE);
     const data = {
       businessId: 1,
       clerkId: 'user_clerk_ana',
       name: 'Ana Pérez',
       email: 'ana@example.com',
-      emailVerifiedAt: null,
     };
 
-    await expect(repository.create(data)).resolves.toEqual({
-      ...EMPLOYEE,
-      emailVerifiedAt: null,
-    });
+    await expect(repository.create(data)).resolves.toEqual(EMPLOYEE);
     expect(prisma.employee.create).toHaveBeenCalledWith({ data });
   });
 
@@ -168,81 +154,6 @@ describe('PrismaEmployeesRepository', () => {
     });
   });
 
-  describe('issueVerificationCode', () => {
-    it('stores only the SHA-256 of a 6-character code and returns the raw code', async () => {
-      prisma.employee.update.mockResolvedValue(EMPLOYEE);
-
-      const code = await repository.issueVerificationCode(1, EXPIRES_AT);
-
-      expect(code).toMatch(CODE_PATTERN);
-      expect(prisma.employee.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: {
-          verificationCodeHash: hashVerificationCode(code),
-          verificationCodeExpiresAt: EXPIRES_AT,
-        },
-      });
-    });
-  });
-
-  describe('verifyEmail', () => {
-    it('marks the Employee verified by the email and the hash of the code, clearing it', async () => {
-      prisma.employee.findFirst.mockResolvedValue({
-        ...EMPLOYEE,
-        emailVerifiedAt: null,
-        verificationCodeHash: hashVerificationCode('ABCDEF'),
-        verificationCodeExpiresAt: EXPIRES_AT,
-      });
-      prisma.employee.update.mockResolvedValue({
-        ...EMPLOYEE,
-        emailVerifiedAt: NOW,
-      });
-
-      await expect(
-        repository.verifyEmail('ana@example.com', 'ABCDEF', NOW),
-      ).resolves.toEqual({
-        ...EMPLOYEE,
-        emailVerifiedAt: NOW,
-      });
-      expect(prisma.employee.findFirst).toHaveBeenCalledWith({
-        where: {
-          email: 'ana@example.com',
-          verificationCodeHash: hashVerificationCode('ABCDEF'),
-        },
-      });
-      expect(prisma.employee.update).toHaveBeenCalledWith({
-        where: { id: EMPLOYEE.id },
-        data: {
-          emailVerifiedAt: NOW,
-          verificationCodeHash: null,
-          verificationCodeExpiresAt: null,
-        },
-      });
-    });
-
-    it('throws InvalidCodeError for an unknown code', async () => {
-      prisma.employee.findFirst.mockResolvedValue(null);
-
-      await expect(
-        repository.verifyEmail('ana@example.com', 'ABCDEF', NOW),
-      ).rejects.toBeInstanceOf(InvalidCodeError);
-      expect(prisma.employee.update).not.toHaveBeenCalled();
-    });
-
-    it('throws ExpiredError for an expired code', async () => {
-      prisma.employee.findFirst.mockResolvedValue({
-        ...EMPLOYEE,
-        verificationCodeHash: hashVerificationCode('ABCDEF'),
-        verificationCodeExpiresAt: NOW,
-      });
-
-      await expect(
-        repository.verifyEmail('ana@example.com', 'ABCDEF', NOW),
-      ).rejects.toBeInstanceOf(ExpiredError);
-      expect(prisma.employee.update).not.toHaveBeenCalled();
-    });
-  });
-
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       create: () =>
@@ -251,7 +162,6 @@ describe('PrismaEmployeesRepository', () => {
           clerkId: 'user_clerk_ana',
           name: 'Ana',
           email: 'ana@example.com',
-          emailVerifiedAt: null,
         }),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'Ana' }),

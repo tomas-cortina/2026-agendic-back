@@ -38,7 +38,6 @@ const EMPLOYEE_ROW = {
   clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
-  emailVerifiedAt: new Date('2026-01-01T12:00:00.000Z'),
   retiredAt: null,
 };
 
@@ -78,7 +77,6 @@ const CREATE_DATA = {
     clerkId: 'user_clerk_ana',
     name: 'Ana Pérez',
     email: 'ana@example.com',
-    emailVerifiedAt: EMPLOYEE_ROW.emailVerifiedAt,
   },
 };
 
@@ -132,7 +130,6 @@ describe('PrismaBusinessesRepository', () => {
       clerkId: 'user_clerk_ana',
       name: 'Ana Pérez',
       email: 'ana@example.com',
-      emailVerifiedAt: EMPLOYEE_ROW.emailVerifiedAt,
       retiredAt: null,
     });
     expect(created.service).toEqual({

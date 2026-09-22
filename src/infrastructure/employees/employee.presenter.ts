@@ -5,5 +5,4 @@ export const presentEmployee = (employee: Employee) => ({
   id: employee.id,
   name: employee.name,
   email: employee.email,
-  verified: employee.emailVerifiedAt !== null,
 });

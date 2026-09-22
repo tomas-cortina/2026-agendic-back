@@ -4,8 +4,6 @@ export interface Employee {
   clerkId: string;
   name: string;
   email: string;
-  /** null while their verification link is still pending. */
-  emailVerifiedAt: Date | null;
   /** When dado de baja; null while employed. */
   retiredAt: Date | null;
 }

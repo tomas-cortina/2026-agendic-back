@@ -15,7 +15,7 @@ describe('Usuario', () => {
   afterEach(() => t.app.close());
 
   describe('GET /users/me', () => {
-    it('returns the Usuario resolved from the Clerk token as { id, name, email, role }', async () => {
+    it('returns the Usuario resolved from the Clerk token as { id, name, email }', async () => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);
 
@@ -28,7 +28,6 @@ describe('Usuario', () => {
         id: 1,
         name: 'Ana Pérez',
         email: 'ana@example.com',
-        role: 'USER',
       });
       expect(t.users.findById).toHaveBeenCalledWith(ANA.id);
     });
@@ -72,7 +71,6 @@ describe('Usuario', () => {
         id: 99,
         name: 'New Owner',
         email: 'new-owner@example.com',
-        role: 'USER',
       });
     });
 
@@ -127,7 +125,6 @@ describe('Usuario', () => {
         id: 1,
         name: 'Ana María',
         email: 'ana@example.com',
-        role: 'USER',
       });
     });
 
@@ -143,7 +140,6 @@ describe('Usuario', () => {
         id: 1,
         name: 'Ana Pérez',
         email: 'ana@example.com',
-        role: 'USER',
       });
     });
 

@@ -3,7 +3,7 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../../domain/errors';
-import { Role, User } from '../../../domain/users/user';
+import { User } from '../../../domain/users/user';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { PrismaUsersRepository } from '../prisma-users.repository';
@@ -13,7 +13,6 @@ const ANA: User = {
   clerkId: 'user_clerk_1',
   name: 'Ana',
   email: 'ana@example.com',
-  role: Role.USER,
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
 };
 

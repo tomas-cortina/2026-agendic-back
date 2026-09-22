@@ -4,7 +4,7 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
-import { Role, User } from '../../domain/users/user';
+import { User } from '../../domain/users/user';
 import { UsersRepository } from '../../domain/users/users.repository';
 import { Prisma, User as UserRow } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -54,7 +54,6 @@ const toUser = (row: UserRow): User => ({
   clerkId: row.clerkId,
   name: row.name,
   email: row.email,
-  role: row.role as Role,
   createdAt: row.createdAt,
 });
 

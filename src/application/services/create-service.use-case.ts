@@ -55,7 +55,7 @@ export class CreateServiceUseCase {
     });
   }
 
-  /** Every Empleado belongs to this Negocio and isn't dado de baja, and at least one of them is verified. */
+  /** Every Empleado belongs to this Negocio and isn't dado de baja. */
   private async assertCanAttend(businessId: number, employeeIds: number[]) {
     const found = await this.employees.listByIds(employeeIds);
     const eligible = found.filter(
@@ -65,10 +65,6 @@ export class CreateServiceUseCase {
     if (eligible.length !== new Set(employeeIds).size)
       throw new BusinessRuleError(
         'Every employeeId must be an Employee of this Business who is not retired',
-      );
-    if (!eligible.some((employee) => employee.emailVerifiedAt !== null))
-      throw new BusinessRuleError(
-        'At least one Employee in charge must have a verified email',
       );
   }
 }

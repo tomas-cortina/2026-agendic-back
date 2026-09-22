@@ -7,8 +7,6 @@ export interface CreateEmployeeData {
   clerkId: string;
   name: string;
   email: string;
-  /** Set at once when the email belongs to an already verified Usuario; null otherwise. */
-  emailVerifiedAt: Date | null;
 }
 
 export interface EmployeesRepository {
@@ -27,11 +25,4 @@ export interface EmployeesRepository {
     id: number,
     retiredAt: Date,
   ): Promise<{ employee: Employee; cancelledBookings: number }>;
-  /** Generates a single-use 6-character code expiring at expiresAt, replacing any previous one. Returns the raw code; only its hash is stored. */
-  issueVerificationCode(employeeId: number, expiresAt: Date): Promise<string>;
-  /**
-   * Consumes a single-use code sent to the Employee's email: verifies it.
-   * Throws BusinessRuleError for an unknown, already used or expired code.
-   */
-  verifyEmail(email: string, code: string, now: Date): Promise<Employee>;
 }

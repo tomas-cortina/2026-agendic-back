@@ -53,7 +53,6 @@ The glossary is in Spanish; code is in English (ADR 0003). Each term has exactly
 | Dueño | `owner` (`Business.ownerId`) |
 | Sucursal | `Branch` (apertura/cierre → `opensAt`/`closesAt`) |
 | Usuario | `User` |
-| Administrador | `Role.ADMIN` |
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
 | Empleado | `Employee` |
 | Servicio | `Service` |
@@ -63,7 +62,6 @@ The glossary is in Spanish; code is in English (ADR 0003). Each term has exactly
 | Reservar | `book` |
 | Cancelar | `cancel` |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
-| Verificar email | `verifyEmail` / `emailVerifiedAt` |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts

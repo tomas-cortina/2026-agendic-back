@@ -14,26 +14,18 @@ import {
 import { AddEmployeeUseCase } from '../../application/employees/add-employee.use-case';
 import { GetMeEmployeeUseCase } from '../../application/employees/get-me-employee.use-case';
 import { ListEmployeesByBusinessUseCase } from '../../application/employees/list-employees-by-business.use-case';
-import { ResendEmployeeVerificationUseCase } from '../../application/employees/resend-employee-verification.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { UpdateEmployeeUseCase } from '../../application/employees/update-employee.use-case';
-import { VerifyEmployeeUseCase } from '../../application/employees/verify-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { CurrentEmployee, EmployeeClerkGuard } from './employee-clerk.guard';
 import { presentEmployee } from './employee.presenter';
-import {
-  CreateEmployeeDto,
-  UpdateEmployeeDto,
-  VerifyEmployeeDto,
-} from './employees.dto';
+import { CreateEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 
 @Controller()
 export class EmployeesController {
   constructor(
     private readonly addEmployeeUseCase: AddEmployeeUseCase,
     private readonly getMeEmployeeUseCase: GetMeEmployeeUseCase,
-    private readonly verifyEmployeeUseCase: VerifyEmployeeUseCase,
-    private readonly resendEmployeeVerificationUseCase: ResendEmployeeVerificationUseCase,
     private readonly updateEmployeeUseCase: UpdateEmployeeUseCase,
     private readonly listEmployeesByBusinessUseCase: ListEmployeesByBusinessUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
@@ -54,22 +46,6 @@ export class EmployeesController {
   @UseGuards(EmployeeClerkGuard)
   async getMe(@CurrentEmployee() employeeId: number) {
     return presentEmployee(await this.getMeEmployeeUseCase.execute(employeeId));
-  }
-
-  @Post('employees/verification')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async verify(@Body() dto: VerifyEmployeeDto) {
-    await this.verifyEmployeeUseCase.execute(dto.email, dto.code);
-  }
-
-  @Post('employees/:id/verification/resend')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(ClerkGuard)
-  async resend(
-    @CurrentUser() userId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
-    await this.resendEmployeeVerificationUseCase.execute(userId, id);
   }
 
   @Patch('employees/:id')

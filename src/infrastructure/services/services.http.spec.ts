@@ -16,13 +16,12 @@ import {
 
 const BRANCH = ANAS_BRANCH;
 
-/** A second Empleado of Ana's, still waiting on their verification link. */
-const UNVERIFIED_EMPLOYEE = {
+/** A second Empleado of Ana's. */
+const OTHER_EMPLOYEE = {
   ...ANAS_EMPLOYEE,
   id: 2,
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
-  emailVerifiedAt: null,
 };
 
 const IN_CHARGE = [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }];
@@ -110,11 +109,8 @@ describe('Servicio', () => {
       });
     });
 
-    it('puts several Empleados in charge when only one of them is verified', async () => {
-      t.employees.listByIds.mockResolvedValue([
-        ANAS_EMPLOYEE,
-        UNVERIFIED_EMPLOYEE,
-      ]);
+    it('puts several Empleados in charge', async () => {
+      t.employees.listByIds.mockResolvedValue([ANAS_EMPLOYEE, OTHER_EMPLOYEE]);
       t.services.create.mockResolvedValue(SERVICE);
 
       await t.http
@@ -122,27 +118,15 @@ describe('Servicio', () => {
         .set(bearer(CLERK_TOKEN))
         .send({
           ...VALID_SERVICE,
-          employeeIds: [ANAS_EMPLOYEE.id, UNVERIFIED_EMPLOYEE.id],
+          employeeIds: [ANAS_EMPLOYEE.id, OTHER_EMPLOYEE.id],
         })
         .expect(201);
 
       expect(t.services.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          employeeIds: [ANAS_EMPLOYEE.id, UNVERIFIED_EMPLOYEE.id],
+          employeeIds: [ANAS_EMPLOYEE.id, OTHER_EMPLOYEE.id],
         }),
       );
-    });
-
-    it('answers 422 when no Empleado in charge is verified', async () => {
-      t.employees.listByIds.mockResolvedValue([UNVERIFIED_EMPLOYEE]);
-
-      await t.http
-        .post(`/branches/${BRANCH.id}/services`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_SERVICE, employeeIds: [UNVERIFIED_EMPLOYEE.id] })
-        .expect(422);
-
-      expect(t.services.create).not.toHaveBeenCalled();
     });
 
     it('answers 422 for an Empleado of another Negocio', async () => {
@@ -412,28 +396,28 @@ describe('Servicio', () => {
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
-      t.employees.findById.mockResolvedValue(UNVERIFIED_EMPLOYEE);
+      t.employees.findById.mockResolvedValue(OTHER_EMPLOYEE);
     });
 
     it('puts the Empleado in charge of the Servicio, for the Dueño', async () => {
       t.services.addEmployee.mockResolvedValue({
         ...SERVICE,
-        employees: [...IN_CHARGE, { id: UNVERIFIED_EMPLOYEE.id, name: UNVERIFIED_EMPLOYEE.name }],
+        employees: [...IN_CHARGE, { id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name }],
       });
 
       const res = await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
-        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .send({ employeeId: OTHER_EMPLOYEE.id })
         .expect(201);
 
       expect(t.services.addEmployee).toHaveBeenCalledWith(
         SERVICE.id,
-        UNVERIFIED_EMPLOYEE.id,
+        OTHER_EMPLOYEE.id,
       );
       expect(res.body.employees).toContainEqual({
-        id: UNVERIFIED_EMPLOYEE.id,
-        name: UNVERIFIED_EMPLOYEE.name,
+        id: OTHER_EMPLOYEE.id,
+        name: OTHER_EMPLOYEE.name,
       });
     });
 
@@ -445,20 +429,20 @@ describe('Servicio', () => {
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
-        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .send({ employeeId: OTHER_EMPLOYEE.id })
         .expect(409);
     });
 
     it('answers 422 for an Empleado of another Negocio', async () => {
       t.employees.findById.mockResolvedValue({
-        ...UNVERIFIED_EMPLOYEE,
+        ...OTHER_EMPLOYEE,
         businessId: ANAS_BUSINESS.id + 1,
       });
 
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
-        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .send({ employeeId: OTHER_EMPLOYEE.id })
         .expect(422);
 
       expect(t.services.addEmployee).not.toHaveBeenCalled();
@@ -466,14 +450,14 @@ describe('Servicio', () => {
 
     it('answers 422 for an Empleado dado de baja', async () => {
       t.employees.findById.mockResolvedValue({
-        ...UNVERIFIED_EMPLOYEE,
+        ...OTHER_EMPLOYEE,
         retiredAt: new Date('2026-01-01T00:00:00.000Z'),
       });
 
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
-        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .send({ employeeId: OTHER_EMPLOYEE.id })
         .expect(422);
 
       expect(t.services.addEmployee).not.toHaveBeenCalled();
@@ -482,7 +466,7 @@ describe('Servicio', () => {
     it('answers 401 without a Sesión', async () => {
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
-        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .send({ employeeId: OTHER_EMPLOYEE.id })
         .expect(401);
     });
 
@@ -490,7 +474,7 @@ describe('Servicio', () => {
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(OTHER_CLERK_TOKEN))
-        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .send({ employeeId: OTHER_EMPLOYEE.id })
         .expect(403);
 
       expect(t.services.addEmployee).not.toHaveBeenCalled();
@@ -502,7 +486,7 @@ describe('Servicio', () => {
       await t.http
         .post('/services/999/employees')
         .set(bearer(CLERK_TOKEN))
-        .send({ employeeId: UNVERIFIED_EMPLOYEE.id })
+        .send({ employeeId: OTHER_EMPLOYEE.id })
         .expect(404);
     });
 
@@ -526,7 +510,7 @@ describe('Servicio', () => {
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
-      t.employees.findById.mockResolvedValue(UNVERIFIED_EMPLOYEE);
+      t.employees.findById.mockResolvedValue(OTHER_EMPLOYEE);
       t.services.removeEmployee.mockResolvedValue({
         service: SERVICE,
         cancelledBookings: 0,
@@ -535,13 +519,13 @@ describe('Servicio', () => {
 
     it('takes the Empleado off the Servicio, for the Dueño', async () => {
       const res = await t.http
-        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .delete(`/services/${SERVICE.id}/employees/${OTHER_EMPLOYEE.id}`)
         .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(t.services.removeEmployee).toHaveBeenCalledWith(
         SERVICE.id,
-        UNVERIFIED_EMPLOYEE.id,
+        OTHER_EMPLOYEE.id,
         expect.any(Date),
       );
       expect(res.body).toEqual({ cancelledBookings: 0 });
@@ -554,14 +538,14 @@ describe('Servicio', () => {
       });
 
       const res = await t.http
-        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .delete(`/services/${SERVICE.id}/employees/${OTHER_EMPLOYEE.id}`)
         .set(bearer(CLERK_TOKEN))
         .expect(200);
 
       expect(res.body).toEqual({ cancelledBookings: 2 });
     });
 
-    it("answers 422 and changes nothing when they're the Servicio's last verified Empleado", async () => {
+    it("answers 422 and changes nothing when they're the Servicio's last Empleado", async () => {
       t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
 
       await t.http
@@ -572,7 +556,7 @@ describe('Servicio', () => {
       expect(t.services.removeEmployee).not.toHaveBeenCalled();
     });
 
-    it('removes the last verified Empleado when the Servicio is already dado de baja', async () => {
+    it('removes the last Empleado when the Servicio is already dado de baja', async () => {
       t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
       t.services.findById.mockResolvedValue({
         ...SERVICE,
@@ -593,13 +577,13 @@ describe('Servicio', () => {
 
     it('answers 401 without a Sesión', async () => {
       await t.http
-        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .delete(`/services/${SERVICE.id}/employees/${OTHER_EMPLOYEE.id}`)
         .expect(401);
     });
 
     it('answers 403 for another Usuario', async () => {
       await t.http
-        .delete(`/services/${SERVICE.id}/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .delete(`/services/${SERVICE.id}/employees/${OTHER_EMPLOYEE.id}`)
         .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
 
@@ -610,7 +594,7 @@ describe('Servicio', () => {
       t.services.findById.mockResolvedValue(null);
 
       await t.http
-        .delete(`/services/999/employees/${UNVERIFIED_EMPLOYEE.id}`)
+        .delete(`/services/999/employees/${OTHER_EMPLOYEE.id}`)
         .set(bearer(CLERK_TOKEN))
         .expect(404);
     });

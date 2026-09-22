@@ -30,7 +30,7 @@ import {
   ServicesRepository,
 } from './domain/services/services.repository';
 import { CLERK_AUTH, ClerkAuth, ClerkIdentity } from './domain/users/clerk-auth';
-import { Role, User } from './domain/users/user';
+import { User } from './domain/users/user';
 import {
   USERS_REPOSITORY,
   UsersRepository,
@@ -65,7 +65,6 @@ export async function createTestApp() {
   };
   const mailer: jest.Mocked<Mailer> = {
     sendVerificationLink: jest.fn(),
-    sendVerificationCode: jest.fn(),
   };
   const clerkAuth: jest.Mocked<ClerkAuth> = {
     verifyToken: jest.fn<Promise<ClerkIdentity>, [string | undefined]>(
@@ -98,8 +97,6 @@ export async function createTestApp() {
     listActiveByBusiness: jest.fn(),
     update: jest.fn(),
     retire: jest.fn(),
-    issueVerificationCode: jest.fn(),
-    verifyEmail: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
     create: jest.fn(),
@@ -162,7 +159,6 @@ export const ANA: User = {
   clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
-  role: Role.USER,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -171,7 +167,6 @@ export const BRUNO: User = {
   clerkId: 'user_clerk_bruno',
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
-  role: Role.USER,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -192,14 +187,13 @@ export const ANAS_BRANCH: Branch = {
   closesAt: '18:00',
 };
 
-/** Ana as the Empleado of her own Negocio: verified at the Clock's starting now. */
+/** Ana as the Empleado of her own Negocio. */
 export const ANAS_EMPLOYEE: Employee = {
   id: 1,
   businessId: ANAS_BUSINESS.id,
   clerkId: ANA.clerkId,
   name: ANA.name,
   email: ANA.email,
-  emailVerifiedAt: new TestClock().now(),
   retiredAt: null,
 };
 

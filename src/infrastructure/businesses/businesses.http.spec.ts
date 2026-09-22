@@ -102,7 +102,6 @@ describe('Negocio', () => {
           clerkId: ANA.clerkId,
           name: ANA.name,
           email: ANA.email,
-          emailVerifiedAt: t.clock.now(),
         },
       });
       expect(res.body).toEqual({
@@ -122,7 +121,6 @@ describe('Negocio', () => {
           id: ANAS_EMPLOYEE.id,
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
-          verified: true,
         },
       });
     });

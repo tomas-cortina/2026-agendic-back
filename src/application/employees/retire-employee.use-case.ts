@@ -13,7 +13,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { isLastVerifiedEmployee } from '../services/is-last-verified-employee';
+import { isLastEmployee } from '../services/is-last-employee';
 import { assertEmployeeOwner } from './assert-employee-owner';
 
 @Injectable()
@@ -39,9 +39,9 @@ export class RetireEmployeeUseCase {
       userId,
     );
     const affected = await this.services.listActiveByEmployee(employeeId);
-    if (affected.some((service) => isLastVerifiedEmployee(service, employeeId)))
+    if (affected.some((service) => isLastEmployee(service, employeeId)))
       throw new BusinessRuleError(
-        "Cannot retire the Employee: they are a Service's last verified Employee",
+        "Cannot retire the Employee: they are a Service's last Employee",
       );
     const { cancelledBookings } = await this.employees.retire(
       employee.id,

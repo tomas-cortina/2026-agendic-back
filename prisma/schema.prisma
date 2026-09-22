@@ -14,11 +14,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  ADMIN
-  USER
-}
-
 enum BookingStatus {
   UNVERIFIED
   BOOKED
@@ -38,7 +33,6 @@ model User {
   clerkId   String   @unique // Clerk is the identity's system of record; no local credentials
   name      String
   email     String
-  role      Role     @default(USER)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   businesses Business[]
@@ -84,15 +78,12 @@ model Service {
 }
 
 model Employee {
-  id                         Int       @id @default(autoincrement())
-  businessId                 Int
-  clerkId                    String    @unique // Clerk is the identity's system of record; no local credentials
-  name                       String
-  email                      String
-  emailVerifiedAt            DateTime? @db.Timestamptz(3) // null while the verification code is still pending
-  retiredAt                  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
-  verificationCodeHash       String? // sha256 of the code, never the code itself
-  verificationCodeExpiresAt  DateTime? @db.Timestamptz(3)
+  id         Int       @id @default(autoincrement())
+  businessId Int
+  clerkId    String    @unique // Clerk is the identity's system of record; no local credentials
+  name       String
+  email      String
+  retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
   business Business  @relation(fields: [businessId], references: [id])
   services Service[]
